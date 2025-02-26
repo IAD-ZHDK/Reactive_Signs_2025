@@ -1,0 +1,102 @@
+#canvas-wrapper {
+  position: relative;
+}
+
+#output {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+}
+
+#webCam {
+  position: absolute;
+  z-index: 9;
+  background-color: #f1f1f1;
+  text-align: center;
+  border: 1px solid #d3d3d3;
+}
+
+.loader {
+  width: 6rem;
+  height: 6rem;
+  margin: 6rem;
+  border-radius: 50%;
+  border: 0.3rem solid #aaaaaa;
+  transform: translate(50%);
+  animation: 1s loader ease-out infinite;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+}
+
+@keyframes loader {
+  from {
+    transform: scale(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Safari */
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+  }
+
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+body {
+  /* transform: rotate(-90deg);  */
+  padding:
+    0;
+  margin:
+    0;
+  background:
+    #202020;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+main > canvas {
+  display:
+    block;
+  position:
+    absolute;
+  left:
+    50%;
+  top:
+    50%;
+  transform:
+    translate(-50%, -50%);
+  width:
+    50%;
+  height:
+    50%;
+  text-align:
+    center;
+  z-index: 1000;
+}
