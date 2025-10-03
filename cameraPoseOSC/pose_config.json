@@ -1,0 +1,49 @@
+{
+  "models": {
+    "mediapipe_pose": {
+      "type": "mediapipe",
+      "model_complexity": 1,
+      "min_detection_confidence": 0.5,
+      "min_tracking_confidence": 0.5,
+      "enable_segmentation": false,
+      "smooth_landmarks": true
+    },
+    "mediapipe_pose_lite": {
+      "type": "mediapipe", 
+      "model_complexity": 0,
+      "min_detection_confidence": 0.3,
+      "min_tracking_confidence": 0.3,
+      "enable_segmentation": false,
+      "smooth_landmarks": true
+    },
+    "mediapipe_pose_heavy": {
+      "type": "mediapipe",
+      "model_complexity": 2,
+      "min_detection_confidence": 0.7,
+      "min_tracking_confidence": 0.7,
+      "enable_segmentation": false,
+      "smooth_landmarks": true
+    }
+  },
+  "default_model": "mediapipe_pose",
+  "osc": {
+    "host": "127.0.0.1",
+    "port": 8025,
+    "message_path": "/depth",
+    "use_websockets": true
+  },
+  "camera": {
+    "device_id": 0,
+    "fps": 30
+  },
+  "pose_points": {
+    "key_landmarks": [
+      "NOSE",
+      "LEFT_SHOULDER", 
+      "RIGHT_SHOULDER",
+      "LEFT_HIP",
+      "RIGHT_HIP"
+    ],
+    "visibility_threshold": 0.5
+  }
+}

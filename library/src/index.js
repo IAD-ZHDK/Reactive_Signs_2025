@@ -191,9 +191,9 @@ function resizeCanvas(P5Instance) {
   // cameraSave(); // work around for play.js
   P5Instance.resizeCanvas(getWindowWidth(), getWindowHeight());
   updateViewportVariables(P5Instance);
-  try{
+  try {
     P5Instance.windowResized();
-  } catch(e) {
+  } catch (e) {
   }
 }
 
@@ -305,22 +305,48 @@ p5.prototype.poster = class {
 
 p5.prototype.poster.getCounter = function () {
   // check if body has id, if id does, than return id number
+  // if body id doesn't exist return currentNumber, then check canvas for ID attribute
   let body = document.querySelector('body');
   let bodyId = body.getAttribute('id');
-  if (bodyId != '') {
-    // check if id is a number
-    if (!isNaN(bodyId) && bodyId != null) {
-      // check that bodyID is not null
-      // hide debug info;
-      debug = false
-      exhibitionMode = true;
-      // convert bodyId to number
-      bodyId = parseInt(bodyId);
-      return bodyId;
-    } else {
-      return currentNumber;
-    }
+  
+  // Safely get canvas element - try multiple approaches
+  let canvas = null;
+  let canvasId = null;
+  
+  // First try to get from p5 instance
+  if (this._renderer && this._renderer.canvas) {
+    canvas = this._renderer.canvas;
   } else {
+    // Fallback to DOM query
+    canvas = document.querySelector('canvas');
+  }
+  
+  if (canvas) {
+    canvasId = canvas.getAttribute('number');
+  }
+  
+ // console.log("bodyId", bodyId);
+ // console.log("canvasId", canvasId);
+  // console.log("canvas element:", canvas); // Add this to debug
+
+  if (!isNaN(bodyId) && bodyId != null) { // Remove the extra 'f' here
+    // check that bodyID is not null
+    // hide debug info;
+    debug = false
+    exhibitionMode = true;
+    // convert bodyId to number
+    bodyId = parseInt(bodyId);
+    return bodyId;
+  } else if (!isNaN(canvasId) && canvasId != null) {
+    // check that bodyID is not null
+    // hide debug info;
+    debug = false
+    exhibitionMode = true;
+    // convert bodyId to number
+    canvasId = parseInt(canvasId);
+    return canvasId;
+  }
+  else {
     return currentNumber;
   }
 }

@@ -5,7 +5,7 @@ let defaultPoster = 'PosterDefault';
 // not used: 
 let currentPoster = 0;
 let intervalPosterChange = 240000; //4 minutes 
-let intervalCountDown = 500; //
+let intervalCountDown = 1000; //
 let trackingActive = false;
 let streaming = false;
 let demoMode = false
@@ -27,7 +27,7 @@ window.onload = function () {
   });
   // incrementCounterInterval = setInterval(incrementCounterDown, 2000); // Call incrementCounter every 1000 milliseconds (1 second)
   countInterval = setInterval(countHandler, intervalCountDown);
-  // myInterval = setInterval(intervalHandler, intervalPosterChange);
+   myInterval = setInterval(intervalHandler, intervalPosterChange);
 }
 
 function adjustContainerSize() {

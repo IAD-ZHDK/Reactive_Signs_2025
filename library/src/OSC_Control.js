@@ -23,6 +23,7 @@ export function setUpOSC(depthEnabled) {
     lastOSC = window.performance.now();
     // init buffer
     // setup OSC receiver
+    
     osc.on('/depth', msg => {
       refreshData(msg);
     }
