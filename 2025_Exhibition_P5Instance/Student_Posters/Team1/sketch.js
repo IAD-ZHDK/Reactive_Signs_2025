@@ -11,7 +11,7 @@ window.Team1Resources = window.Team1Resources || {
   loaded: false,
   models: {},
   font: null,
-  preload: function(p) {
+  preload: function (p) {
 
     const BASE_PATH = window.basePath;
     // Use absolute paths from the public root
@@ -47,11 +47,12 @@ window.Team1Resources = window.Team1Resources || {
     this.models.oneTop = p.loadModel(`${BASE_PATH}/objects/1Top.obj`);
     this.models.oneBottom = p.loadModel(`${BASE_PATH}/objects/1Bottom.obj`);
     this.font = p.loadFont(`${BASE_PATH}/barlow_condensed.otf`);
+
   }
 };
 
 // p5.js instance mode
-window.sketch = function(p) {
+window.sketch = function (p) {
   const Resources = window.Team1Resources;
 
   let transitionSpeed = 0.25;
@@ -157,19 +158,19 @@ window.sketch = function(p) {
   // Zustände für das Countdown-System
   let state;
 
-  p.preload = function() {
+  p.preload = function () {
     if (!Resources.loaded) {
       Resources.preload(p);
       Resources.loaded = true;
     }
   }
 
-  p.setup = function() {
+  p.setup = function () {
     p.createCanvas(100, 100, p.WEBGL); // Don't remove this line. 
     p.textFont(Resources.font);
   }
 
-  p.draw = function() {
+  p.draw = function () {
     p.background(0);
     p.fill(255)
     p.noStroke()
@@ -198,7 +199,7 @@ window.sketch = function(p) {
     interpolateAll();
 
     let flipAngle = p.PI;
-    p.scale(p.poster ? p.poster.vw*9 : 1);
+    p.scale(p.poster ? p.poster.vw * 9 : 1);
 
     if (state == 0) {
       renderModel(Resources.models.zeroTop, Resources.models.zeroMiddle, Resources.models.zeroBottom, zeroTopPosition, zeroMiddlePosition, zeroBottomPosition, flipAngle);
@@ -223,7 +224,7 @@ window.sketch = function(p) {
     }
   }
 
-  function interpolateAll(){
+  function interpolateAll() {
     zeroTopPosition = interpolatePosition(zeroTopPosition, zeroTarget.top);
     zeroMiddlePosition = interpolatePosition(zeroMiddlePosition, zeroTarget.middle);
     zeroBottomPosition = interpolatePosition(zeroBottomPosition, zeroTarget.bottom);

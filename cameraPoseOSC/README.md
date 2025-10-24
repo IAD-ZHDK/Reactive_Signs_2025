@@ -31,7 +31,7 @@ Cross-platform pose detection system using YOLO that sends pose data via OSC (UD
    venv\Scripts\activate     # Windows
    
    # Run with WebSocket
-   python pose_detector_yoloV().py
+   python pose_detector_yoloV8.py
    
    
 ## OSC Output Format
@@ -85,22 +85,10 @@ Settings are saved in `pose_config.json`:
 }
 ```
 
-## Testing
-
-Test WebSocket connectivity:
-```bash
-python test_ws_simple.py
-```
-
-Test OSC message reception:
-```bash
-python test_osc_receiver.py
-```
-
 ## Command Line Options
 
 ```bash
-python pose_detector_yolo.py [options]
+python pose_detector_yolov8.py [options]
 
 Options:
   --osc-host HOST      OSC host address (default: 127.0.0.1)
@@ -117,13 +105,6 @@ Options:
 - Python 3.9+ (YOLO compatible, Python 3.13+ supported)
 - Camera (webcam or external)
 - Network connection for model download (first run only)
-
-## Compatibility
-
-- **realSenseOSC**: Full compatibility with WebSocket protocol
-- **OSC applications**: Standard UDP OSC support
-- **Platforms**: macOS, Windows, Linux
-- **Python**: 3.9, 3.10, 3.11, 3.12, 3.13+
 
 ## Troubleshooting
 

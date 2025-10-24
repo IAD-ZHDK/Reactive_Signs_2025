@@ -505,14 +505,3 @@ window.sketch = function (p) {
     showTemplate(numbers[p.poster.getCounter()]);
   }
 };
-spikey2.x = tileArray[16].x + tileSize / 2
-
-spikey2.y = tileArray[16].y + tileSize / 2
-
-
-
-spikey3.x = tileArray[63].x + tileSize / 2
-
-spikey3.y = tileArray[63].y + tileSize / 2
-
-

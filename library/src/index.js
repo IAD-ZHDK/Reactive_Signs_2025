@@ -9,7 +9,24 @@ import { setUpOSC, realsensePos, OSCdepthData, OSCdepthW, OSCdepthH, OSCtracking
 import { debugInfo } from './debugInfo.js'
 import globalVariables from './globalVariables';
 
-import packageInfo from "../package.json";
+// Quick check to confirm this module is loaded in the browser
+try {
+  console.log("library/src/index.js loaded");
+  window.__reactive_signs_library_loaded = true;
+} catch (e) {
+  // ignore in environments without console/window
+}
+
+try {
+  if (typeof p5 === 'undefined') {
+    console.warn('p5 is NOT defined at module load time');
+  } else {
+    console.log('p5 is defined, version:', p5.VERSION, 'registerMethod?', typeof p5.prototype.registerMethod);
+  }
+} catch (e) {
+  console.error('Error checking p5 availability', e);
+}
+
 
 let webCamWrapper;
 let currentNumber = 9;
@@ -69,10 +86,8 @@ function afterSetup() {
   });
 
   P5Instance.mousePressed = function () {
-    if (P5Instance.mouseButton === P5Instance.LEFT & exhibitionMode == false) {
-      if (P5Instance.mouseX > 0 && P5Instance.mouseY > 0 && P5Instance.mouseX < P5Instance.width && P5Instance.mouseY < P5Instance.height) {
-        openFullscreen(P5Instance);
-      }
+    if (P5Instance.mouseX > 0 && P5Instance.mouseY > 0 && P5Instance.mouseX < P5Instance.width && P5Instance.mouseY < P5Instance.height) {
+      openFullscreen(P5Instance);
     }
 
   }
@@ -256,17 +271,20 @@ function updateViewportVariables(P5Instance) {
 
   //offset 
   // This is for three poster setup, to offset each poster slightly horizontally
-  let x = globalVariables.posNormal.x
+  let newX = globalVariables.posNormal.x
   let offset = 0.2;
   let startX = 0.0 + (idx * offset);
-  let endX = 1.0 - (offset * 2)
-  console.log("x ", globalVariables.posNormal.x);
-  x = P5Instance.constrain(x, startX, endX);
-  x = P5Instance.map(x, startX, endX, 0.0, 1.0);
-  let xScaled = x * P5Instance.width;
+  let endX = 1.0 - (offset * 2) + (idx * offset)
 
+  newX = P5Instance.constrain(newX, startX, endX);
+  newX = P5Instance.map(newX, startX, endX, 0.0, 1.0);
+
+  let xScaled = newX * P5Instance.width;
+
+  P5Instance.poster.position = globalVariables.position.copy();
+  P5Instance.poster.posNormal = globalVariables.posNormal.copy();
   P5Instance.poster.position.x = xScaled;
-  P5Instance.poster.posNormal.x = x;
+  P5Instance.poster.posNormal.x = newX;
   P5Instance.poster.vh = globalVariables.vh;
   P5Instance.poster.vw = globalVariables.vw;
   P5Instance.poster.screens = globalVariables.screens;
@@ -327,7 +345,7 @@ p5.prototype.poster.getCounter = function () {
 
   // Safely get canvas element - try multiple approaches
   let canvas = null;
-  let canvasId = null;
+  let canvasNumber = null;
 
   // First try to get from p5 instance
   if (this._renderer && this._renderer.canvas) {
@@ -338,49 +356,31 @@ p5.prototype.poster.getCounter = function () {
   }
 
   if (canvas) {
-    canvasId = canvas.getAttribute('number');
+    canvasNumber = canvas.getAttribute('number');
   }
-
-  // console.log("bodyId", bodyId);
-  // console.log("canvasId", canvasId);
-  // console.log("canvas element:", canvas); // Add this to debug
+  // console.log("canvasNumber", canvasNumber);
 
   if (!isNaN(bodyId) && bodyId != null) {
     // check that bodyID is not null
     // hide debug info
-    debug = false
+    // debug = false
     exhibitionMode = true;
     // convert bodyId to number
     bodyId = parseInt(bodyId);
     return bodyId;
-  } else if (!isNaN(canvasId) && canvasId != null) {
+  } else if (!isNaN(canvasNumber) && canvasNumber != null) {
     // check that bodyID is not null
     // hide debug info;
-    debug = false
+    //debug = false
     exhibitionMode = true;
     // convert bodyId to number
-    canvasId = parseInt(canvasId);
-    return canvasId;
-  }
-  else {
+    canvasNumber = parseInt(canvasNumber);
+    return canvasNumber;
+  } else {
     return currentNumber;
   }
 }
 
-// register hooks
-
-p5.prototype.registerMethod("init", libraryInit);
-p5.prototype.registerMethod("post", libraryPostDraw);
-p5.prototype.registerMethod("pre", libraryPreDraw);
-p5.prototype.registerMethod("afterSetup", afterSetup);
-p5.prototype.registerMethod("beforeSetup", beforeSetup);
-/*
-p5.prototype.myAddon.MyClass = class {
-
-};
-*/
-
-// counter specific functions 
 
 
 function incrementCounter() {
@@ -409,4 +409,42 @@ function openFullscreen(P5Instance) {
   } else if (elem.msRequestFullscreen) { /* IE/Edge */
     elem.msRequestFullscreen()
   }
+}
+
+
+// replace the registerMethod block at the bottom with guarded registration
+try {
+  if (typeof p5 !== 'undefined' && typeof p5.prototype.registerMethod === 'function') {
+    p5.prototype.registerMethod("init", libraryInit);
+    p5.prototype.registerMethod("post", libraryPostDraw);
+    p5.prototype.registerMethod("pre", libraryPreDraw);
+    p5.prototype.registerMethod("afterSetup", afterSetup);
+    p5.prototype.registerMethod("beforeSetup", beforeSetup);
+    console.log('library hooks registered');
+  } else {
+    console.warn('Could not register p5 hooks — p5 or registerMethod missing');
+  }
+} catch (err) {
+  console.error('Failed to register p5 hooks:', err);
+}
+
+// counter specific functions
+
+p5.prototype.attachToInstance = function (inst) {
+  // ensure per-instance state
+  inst._libState = inst._libState || {
+    counter: 0,
+    lastUpdate: 0,
+    // add other per-instance variables here
+  };
+
+  // expose poster API that uses instance state
+  inst.poster = inst.poster || {};
+  inst.poster.getCounter = function () {
+    return inst._libState.counter;
+  };
+  inst.poster.setCounter = function (v) {
+    inst._libState.counter = v;
+  };
+  // Example: other API methods should also always reference inst._libState
 }

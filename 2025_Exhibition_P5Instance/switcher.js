@@ -5,7 +5,7 @@ let loadedScripts = new Set(); // Track loaded script files
 
 let posters = ['Team1', 'Team2', 'Team3', 'Team4', 'Team5', 'Team6', 'Team7']
 let defaultPoster = 'PosterDefault';
-let currentPoster = 3;
+let currentPoster = 0;
 let intervalPosterChange = 240000; //4 minutes 
 let intervalCountDown = 1000;
 let trackingActive = false;
