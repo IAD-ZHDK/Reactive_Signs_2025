@@ -23,7 +23,7 @@ let manualCounter = false;
 let fadingIn = 255;
 let fadingOut = false;
 let exhibitionMode = false;
-
+let idx = 0; // canvas index for multi-canvas setups
 let libraryFont
 
 /// hooks
@@ -74,6 +74,7 @@ function afterSetup() {
         openFullscreen(P5Instance);
       }
     }
+
   }
 
 
@@ -114,6 +115,8 @@ function afterSetup() {
     pressed.delete(evt.code);
   }
 
+
+
 }
 
 function libraryPreDraw() {
@@ -153,6 +156,21 @@ if (poses != undefined && Settings.poseDetection == true) {
 }
 function libraryPostDraw() {
   let P5Instance = this;
+
+
+
+  /// --- start: per-canvas poster offset setup ---
+  try {
+    const canvas = P5Instance._renderer && P5Instance._renderer.canvas;
+    const canvasID = canvas.id
+    // get the number at the end of the id attribute, after 'canvas' or 'Canvas'
+    const canvasNumber = parseInt(canvasID.replace(/\D/g, ''));
+    idx = canvasNumber;
+    //console.log("canvas index:", idx);
+  } catch (e) {
+    idx = 0;
+  }
+
 
   if (!fullscreenMode && debug) {
     P5Instance.cursor()
@@ -235,8 +253,20 @@ function updateViewportVariables(P5Instance) {
   globalVariables.vw = w * 0.01; // 1 percent of viewport width;
   globalVariables.vh = h * 0.01;// 1 percent of viewport height;  
 
-  P5Instance.poster.position = globalVariables.position;
-  P5Instance.poster.posNormal = globalVariables.posNormal;
+
+  //offset 
+  // This is for three poster setup, to offset each poster slightly horizontally
+  let x = globalVariables.posNormal.x
+  let offset = 0.2;
+  let startX = 0.0 + (idx * offset);
+  let endX = 1.0 - (offset * 2)
+  console.log("x ", globalVariables.posNormal.x);
+  x = P5Instance.constrain(x, startX, endX);
+  x = P5Instance.map(x, startX, endX, 0.0, 1.0);
+  let xScaled = x * P5Instance.width;
+
+  P5Instance.poster.position.x = xScaled;
+  P5Instance.poster.posNormal.x = x;
   P5Instance.poster.vh = globalVariables.vh;
   P5Instance.poster.vw = globalVariables.vw;
   P5Instance.poster.screens = globalVariables.screens;
@@ -246,14 +276,6 @@ function getWindowWidth() {
   let posterWidth;
   let displayWidth = window.innerWidth;
   let displayHeight = window.innerHeight;
-  //const body = document.getElementsByTagName('body'); // 
-  //let body = document.querySelector('body');
-
-  //if (body.style('transform') == 'matrix(0, 1, -1, 0, 0, 0)' || body.style('transform') == 'matrix(0, -1, 1, 0, 0, 0)') {
-  // workaround for rotated display
-  //  displayWidth = window.innerHeight;
-  //  displayHeight = window.innerWidth;
-  //}
 
   let aspectRatioWH = globalVariables.pageWidth / globalVariables.pageHeight; // width to height
   let aspectRatioHW = globalVariables.pageHeight / globalVariables.pageWidth; // height to width
@@ -274,12 +296,6 @@ function getWindowHeight() {
   let posterHeight;
   let displayWidth = window.innerWidth;
   let displayHeight = window.innerHeight;
-  // let body = document.querySelector('body');
-  // if (body.style('transform') == 'matrix(0, 1, -1, 0, 0, 0)' || body.style('transform') == 'matrix(0, -1, 1, 0, 0, 0)') {
-  // workaround for rotated display
-  //  displayWidth = window.innerHeight;
-  //   displayHeight = window.innerWidth;
-  // }
   let aspectRatioWH = globalVariables.pageWidth / globalVariables.pageHeight; // width to height
   let aspectRatioHW = globalVariables.pageHeight / globalVariables.pageWidth; // height to width
   if (displayWidth < displayHeight * aspectRatioWH) {
@@ -308,11 +324,11 @@ p5.prototype.poster.getCounter = function () {
   // if body id doesn't exist return currentNumber, then check canvas for ID attribute
   let body = document.querySelector('body');
   let bodyId = body.getAttribute('id');
-  
+
   // Safely get canvas element - try multiple approaches
   let canvas = null;
   let canvasId = null;
-  
+
   // First try to get from p5 instance
   if (this._renderer && this._renderer.canvas) {
     canvas = this._renderer.canvas;
@@ -320,18 +336,18 @@ p5.prototype.poster.getCounter = function () {
     // Fallback to DOM query
     canvas = document.querySelector('canvas');
   }
-  
+
   if (canvas) {
     canvasId = canvas.getAttribute('number');
   }
-  
- // console.log("bodyId", bodyId);
- // console.log("canvasId", canvasId);
+
+  // console.log("bodyId", bodyId);
+  // console.log("canvasId", canvasId);
   // console.log("canvas element:", canvas); // Add this to debug
 
-  if (!isNaN(bodyId) && bodyId != null) { // Remove the extra 'f' here
+  if (!isNaN(bodyId) && bodyId != null) {
     // check that bodyID is not null
-    // hide debug info;
+    // hide debug info
     debug = false
     exhibitionMode = true;
     // convert bodyId to number
@@ -381,7 +397,6 @@ function deincrementCounter() {
     currentNumber = 0;
   }
 }
-
 
 function openFullscreen(P5Instance) {
   let elem = document.documentElement

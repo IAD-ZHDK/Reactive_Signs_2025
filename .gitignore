@@ -1,0 +1,66 @@
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Python
+venv/
+.env
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.env
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Models and weights
+*.pt
+*.pth
+*.onnx
+models/
+weights/
+
+# Video / media
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.gif
+*.png
+*.jpg
+*.jpeg
+**/Videos/
+**/video/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Logs and caches
+logs/
+*.log
+.cache/
+.cache-*/
+
+# Build
+dist/
+build/
+
+# Misc
+*.bak
+*.swp
+*.tmp

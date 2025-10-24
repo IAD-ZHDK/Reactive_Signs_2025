@@ -5,7 +5,7 @@ let loadedScripts = new Set(); // Track loaded script files
 
 let posters = ['Team1', 'Team2', 'Team3', 'Team4', 'Team5', 'Team6', 'Team7']
 let defaultPoster = 'PosterDefault';
-let currentPoster = 0;
+let currentPoster = 3;
 let intervalPosterChange = 240000; //4 minutes 
 let intervalCountDown = 1000;
 let trackingActive = false;
@@ -25,8 +25,8 @@ window.onload = function () {
   });
 
   // Load the first poster
-  changePoster(0);
-  
+  changePoster(currentPoster);
+
   countInterval = setInterval(countHandler, intervalCountDown);
   myInterval = setInterval(intervalHandler, intervalPosterChange);
   handleKeyEvents();
@@ -40,12 +40,12 @@ function loadSketch(teamName) {
     if (oldScript) {
       oldScript.remove();
     }
-    
+
     // Delete any existing sketch function
     if (window.sketch) {
       delete window.sketch;
     }
-    
+
     // Create and load new script
     window.basePath = `Student_Posters/${teamName}/`;
     const script = document.createElement('script');
@@ -62,11 +62,11 @@ function loadSketch(teamName) {
         reject(new Error(`Sketch function not found in ${teamName}/sketch.js`));
       }
     };
-    
+
     script.onerror = () => {
       reject(new Error(`Failed to load ${teamName}/sketch.js`));
     };
-    
+
     document.head.appendChild(script);
   });
 }
@@ -80,13 +80,13 @@ function cleanupResources() {
     }
   }
   p5Instances = [];
-  
+
   // Clear canvas divs
   for (let i = 0; i < noFrames; i++) {
     let canvasDiv = document.getElementById('canvas' + i);
     canvasDiv.innerHTML = '';
   }
-  
+
   // Force garbage collection hint
   if (window.gc) {
     window.gc();
@@ -99,7 +99,7 @@ function createInstances() {
     console.error("No sketch function loaded");
     return;
   }
-  
+
   for (let i = 0; i < noFrames; i++) {
     // Create poster object for each instance
     let poster = {
@@ -108,12 +108,12 @@ function createInstances() {
       vw: 1,
       vh: 1
     };
-    
-    let sketchWithPoster = function(p) {
+
+    let sketchWithPoster = function (p) {
       p.poster = poster;
       currentSketchFunction(p);
     };
-    
+
     p5Instances[i] = new p5(sketchWithPoster, 'canvas' + i);
   }
 }
@@ -122,12 +122,12 @@ function changePoster(posterNo) {
   if (posterNo >= 0 && posterNo < posters.length && posterNo != null) {
     console.log("changing posters:" + posterNo);
     currentPoster = posterNo;
-    
+
     const teamName = posters[posterNo];
-    
+
     // Clean up existing resources
     cleanupResources();
-    
+
     // Load new sketch dynamically
     loadSketch(teamName)
       .then(() => {
@@ -142,7 +142,7 @@ function changePoster(posterNo) {
           changePoster(0);
         }
       });
-      
+
   } else {
     console.log("changing posters to default");
     changePoster(0); // Use first poster as default
@@ -211,7 +211,7 @@ function countHandler() {
     let canvasDiv = document.getElementById('canvas' + i);
     let canvasElement = canvasDiv.querySelector('canvas');
     let number = countString.charAt(i);
-    
+
     try {
       if (canvasElement) {
         canvasElement.setAttribute('number', number);
@@ -266,7 +266,7 @@ function handleKeyEvents() {
     let posterNumber = 0;
     let keyCode = event.code;
     console.log(keyCode)
-    
+
     if (keyCode == "next") {
       if (currentPoster < posters.length - 1) {
         currentPoster++;

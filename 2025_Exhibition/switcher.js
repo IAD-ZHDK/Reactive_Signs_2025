@@ -21,13 +21,13 @@ window.onload = function () {
   updateIframes();
   handleKeyEvents();
   adjustContainerSize();
-  window.addEventListener('resize', function() {
+  window.addEventListener('resize', function () {
     console.log("Window resized");
     adjustContainerSize();
   });
   // incrementCounterInterval = setInterval(incrementCounterDown, 2000); // Call incrementCounter every 1000 milliseconds (1 second)
   countInterval = setInterval(countHandler, intervalCountDown);
-   myInterval = setInterval(intervalHandler, intervalPosterChange);
+  myInterval = setInterval(intervalHandler, intervalPosterChange);
 }
 
 function adjustContainerSize() {
@@ -153,7 +153,7 @@ function changePoster(posterNo) {
       // add an event when the iframe is loaded
       iframe.onload = function () {
         updateIframes();
-      
+
       }
     }
 
@@ -246,10 +246,10 @@ function countHandler() {
     // set the id of the body ellement in the iframe  
     // split countString into three parts
     let number = countString.charAt(i);
-    try{
-    frames[i].contentDocument.body.id = number;
-    }catch(e){
-      console.log("error setting body id: "+e)
+    try {
+      frames[i].contentDocument.body.id = number;
+    } catch (e) {
+      console.log("error setting body id: " + e)
     }
   }
 

@@ -5,7 +5,7 @@ window.Team3Resources = window.Team3Resources || {
   reflectionImg: null,
   reflectionImg2: null,
   font: null,
-  preload: function(p) {  
+  preload: function (p) {
     console.log("loading assets...");
     const BASE_PATH = window.basePath;
     this.font = p.loadFont(`${BASE_PATH}barlow_condensed.otf`);
@@ -14,13 +14,13 @@ window.Team3Resources = window.Team3Resources || {
     for (let i = 0; i < 10; i++) {
       this.digits[i] = p.loadModel(`${BASE_PATH}/assets/${i}.obj`);
     }
-    }
+  }
 }
 
 
-window.sketch = function(p) {
+window.sketch = function (p) {
   const Resources = window.Team3Resources;
-   p.preload = function() {
+  p.preload = function () {
     if (!Resources.loaded) {
       Resources.preload(p);
       Resources.loaded = true;
@@ -28,7 +28,7 @@ window.sketch = function(p) {
   }
 
 
-  p.setup = function() {
+  p.setup = function () {
     p.createCanvas(100, 100, p.WEBGL); // Don't remove this line.
     p.textFont(Resources.font);
     p.noStroke();
@@ -36,11 +36,11 @@ window.sketch = function(p) {
     //console.log(cam);
     // display one to load into memory buffer
     for (let i = 0; i < 10; i++) {
-    //  p.model(Resources.digits[i]);
+      //  p.model(Resources.digits[i]);
     }
   };
 
-  p.draw = function() {
+  p.draw = function () {
     p.background(0);
     drawNum(Resources.digits[p.poster.getCounter()]);
   };
@@ -70,42 +70,42 @@ window.sketch = function(p) {
     p.pop();
     p.pop();
   }
-  
+
   function updateGeometry(geometry) {
     for (let i = 0; i < geometry.vertices.length; i += 1500) {
-        // Vertex
-        let v = geometry.vertices[i];
+      // Vertex
+      let v = geometry.vertices[i];
 
-        // Calculate the direction of the vertex from the center
-        let direction = p.createVector(v.x, v.y, v.z).normalize();
+      // Calculate the direction of the vertex from the center
+      let direction = p.createVector(v.x, v.y, v.z).normalize();
 
-        // Cone Size
+      // Cone Size
 
-        let coneLength = p.map(p.abs(p.poster.posNormal.x - 0.5), 0, 0.5, 0, 10);
-        let coneRadius = 0.25;  // Radius of the cone base
+      let coneLength = p.map(p.abs(p.poster.posNormal.x - 0.5), 0, 0.5, 0, 10);
+      let coneRadius = 0.25;  // Radius of the cone base
 
-        p.push();
+      p.push();
 
-        // Position the cone at the vertex
-        p.translate(v.x, v.y, v.z);
+      // Position the cone at the vertex
+      p.translate(v.x, v.y, v.z);
 
-        // Align the cone to the direction vector
-        let rotationAxis = p.createVector(0, 1, 0).cross(direction).normalize();
-        let angle = p.acos(p.createVector(0, 1, 0).dot(direction));
+      // Align the cone to the direction vector
+      let rotationAxis = p.createVector(0, 1, 0).cross(direction).normalize();
+      let angle = p.acos(p.createVector(0, 1, 0).dot(direction));
 
-        // Ensure consistent rotation even for edge cases (ChatGPT)
-        if (rotationAxis.mag() > 0) {
-            p.rotate(angle, rotationAxis);
-        }
+      // Ensure consistent rotation even for edge cases (ChatGPT)
+      if (rotationAxis.mag() > 0) {
+        p.rotate(angle, rotationAxis);
+      }
 
-        // Offset the cone so its base is flush with the vertex (ChatGPT)
-        p.translate(0, coneLength / 2, 0);
+      // Offset the cone so its base is flush with the vertex (ChatGPT)
+      p.translate(0, coneLength / 2, 0);
 
-        // Draw the cone
-        p.noStroke();
-        p.cone(coneRadius, coneLength);
-        p.pop();
+      // Draw the cone
+      p.noStroke();
+      p.cone(coneRadius, coneLength);
+      p.pop();
     }
-}
+  }
 
 };

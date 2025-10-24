@@ -30,13 +30,10 @@ Cross-platform pose detection system using YOLO that sends pose data via OSC (UD
    # or
    venv\Scripts\activate     # Windows
    
-   # Run with WebSocket (default for realSenseOSC compatibility)
-   python pose_detector_yolo.py
+   # Run with WebSocket
+   python pose_detector_yoloV().py
    
-   # Run with UDP OSC (legacy mode)
-   python pose_detector_yolo.py --use-udp
-   ```
-
+   
 ## OSC Output Format
 
 The system sends OSC messages to `/depth` endpoint in realSenseOSC compatible format:
