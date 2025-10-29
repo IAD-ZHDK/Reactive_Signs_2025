@@ -12,11 +12,9 @@ let counter = 0;
 
 function setup() {
 
- /*important!*/ createCanvas(100,100); // Don't remove this line.
+ /*important!*/ createCanvas(100, 100); // Don't remove this line.
 	//createCanvas(1050 / 2, 1920 / 2);
 	background(100);
-
-
 
 	for (let i = 0; i < gridCountX; i++) {
 		for (let j = 0; j < gridCountY; j++) {
@@ -200,8 +198,8 @@ class TesoTriangle {
 				for (let j = 0; j < 10; j++) {
 					push();
 					if (j % 2 == 0 && j < 5) { fill(0); } else { fill(255); }
-					this.drawRectis(parallelStart.x + j * offset, parallelStart.y + j * offset, 
-								  parallelEnd.x + j * offset, parallelEnd.y + j * offset);
+					this.drawRectis(parallelStart.x + j * offset, parallelStart.y + j * offset,
+						parallelEnd.x + j * offset, parallelEnd.y + j * offset);
 					pop();
 				}
 			}

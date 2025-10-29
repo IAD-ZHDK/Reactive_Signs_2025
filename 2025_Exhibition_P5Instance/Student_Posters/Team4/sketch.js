@@ -30,9 +30,7 @@ window.Team4Resources = window.Team4Resources || {
   preload: function (p) {
     const BASE_PATH = window.basePath;
     // try both OTF and TTF as fallback like the original
-    this.font = p.loadFont(`${BASE_PATH}/Montserrat-Black.otf`, () => { }, () => {
-      this.font = p.loadFont(`${BASE_PATH}/Montserrat-Black.ttf`);
-    });
+    this.font = p.loadFont(`${BASE_PATH}/Montserrat-Black.ttf`);
   }
 };
 
@@ -296,7 +294,6 @@ window.sketch = function (p) {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         let showTile = true;
-
         let tile = new Tile(col * tileSize, row * tileSize, tileSize, showTile, row * cols + col);
         tileArray.push(tile);
       }
@@ -311,9 +308,9 @@ window.sketch = function (p) {
     }
 
     // choose number grid to display
-    if (p.poster.getCounter() != oldGridNumber) {
-      showTemplate(numbers[p.poster.getCounter()]);
-      oldGridNumber = p.poster.getCounter();
+    if (p.poster.counter != oldGridNumber) {
+      showTemplate(numbers[p.poster.counter]);
+      oldGridNumber = p.poster.counter;
     }
 
     spikey1.display();
@@ -500,8 +497,9 @@ window.sketch = function (p) {
   }
 
   // expose a windowScaled hook that other code expects
-  window.windowScaled = function () {
+  p.windowResized = function () {
+    console.log("resizing Team4 sketch");
     updateTiles();
-    showTemplate(numbers[p.poster.getCounter()]);
+    showTemplate(numbers[p.poster.counter]);
   }
 };

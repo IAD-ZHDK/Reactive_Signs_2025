@@ -1,4 +1,4 @@
-window.sketch = function(p) {
+window.sketch = function (p) {
   let images = [];
   let aspectRatio = 1.375;
   let previousCounter = -1;

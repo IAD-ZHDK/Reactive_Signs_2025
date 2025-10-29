@@ -1,65 +1,13 @@
 <html>
-
-<head>
+  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script language="javascript" type="text/javascript"
-    src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
-  <script src="/p5.posterControl.js"></script>
-  <script src="/sketch.js"></script>
-  <link rel="stylesheet" href="styles.css">
-</head>
-
-<body>
-  <div class="container">
-    <div id="canvas0" class="posterFrame"></div>
-    <div id="canvas1" class="posterFrame"></div>
-    <div id="canvas2" class="posterFrame"></div>
-  </div>
-</body>
-<script>
-
-  // wait for the sketch to be defined by sketch.js
-  function tryInstantiate() {
-    console.log('Trying to instantiate p5 instances…');
-    // if (typeof window.sketch !== 'function' || typeof window.p5 === 'undefined') {
-    //   setTimeout(tryInstantiate, 100);
-    //   return;
-    // }
-    // instantiate one p5 per container
-    try {
-      new p5(sketch, 'canvas0');
-      new p5(sketch, 'canvas1');
-      new p5(sketch, 'canvas2');
-      console.log('Created 3 p5 instances using window.sketch');
-    } catch (e) {
-      console.error('Failed to create p5 instances', e);
-    }
-  }
-  tryInstantiate();
-
-  // Rest of your existing functions remain the same...
-  function adjustContainerSize() {
-    const container = document.querySelector('.container');
-    const aspectRatio = 3240 / 1920;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const windowAspectRatio = windowWidth / windowHeight;
-
-    if (windowAspectRatio > aspectRatio) {
-      container.style.width = `${windowHeight * aspectRatio}px`;
-      container.style.height = `${windowHeight}px`;
-    } else {
-      container.style.width = `${windowWidth}px`;
-      container.style.height = `${windowWidth / aspectRatio}px`;
-    }
-  }
-  adjustContainerSize();
-  window.addEventListener('resize', function () {
-    console.log("Window resized");
-    adjustContainerSize();
-  });
-
-</script>
-
-</html>
+  <script language="javascript" type="text/javascript" src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
+  <script language="javascript" type="text/javascript" src="/sketch.js"></script>
+  <script language="javascript" type="text/javascript" src="/p5.posterControl.js"></script>
+  <link rel="stylesheet" type="text/css" href="/styles.css">
+  </head>
+  <body>
+  <div class="loader"></div>
+  </body>
+  </html>

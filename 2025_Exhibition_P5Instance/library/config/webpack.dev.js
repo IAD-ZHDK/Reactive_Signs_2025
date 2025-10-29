@@ -27,13 +27,13 @@ module.exports = merge(common, {
 
         // Generates an HTML file from a template
         // Generates deprecation warning: https://github.com/jantimon/html-webpack-plugin/issues/1501
-       /* new HtmlWebpackPlugin({
-            title: 'test server',
-            cache: false,
-            template: path.src + '/template.html', // template file
-            filename: 'index.html', // output file
-        }),
-        */
+        /* new HtmlWebpackPlugin({
+             title: 'test server',
+             cache: false,
+             template: path.src + '/template.html', // template file
+             filename: 'index.html', // output file
+         }),
+         */
         // Copies files from target to destination folder
         new CopyWebpackPlugin({
             patterns: [

@@ -3,14 +3,15 @@ window.Team3Resources = window.Team3Resources || {
   models: {},
   digits: [],
   reflectionImg: null,
-  reflectionImg2: null,
   font: null,
   preload: function (p) {
     console.log("loading assets...");
     const BASE_PATH = window.basePath;
-    this.font = p.loadFont(`${BASE_PATH}barlow_condensed.otf`);
+    this.font = p.loadFont(`${BASE_PATH}/Montserrat-Black.ttf`);
     this.reflectionImg = p.loadImage(`${BASE_PATH}/assets/scape.jpg`);
-    this.reflectionImg2 = p.loadImage(`${BASE_PATH}/assets/texture.gif`);
+    // make copy of reflectionImg for second texture
+
+    // this.reflectionImg2 = p.loadImage(`${BASE_PATH}/assets/texture.gif`);
     for (let i = 0; i < 10; i++) {
       this.digits[i] = p.loadModel(`${BASE_PATH}/assets/${i}.obj`);
     }
@@ -28,21 +29,42 @@ window.sketch = function (p) {
   }
 
 
+
   p.setup = function () {
     p.createCanvas(100, 100, p.WEBGL); // Don't remove this line.
     p.textFont(Resources.font);
     p.noStroke();
     let cam = p.createCamera();
-    //console.log(cam);
-    // display one to load into memory buffer
+    // Preload geometry
     for (let i = 0; i < 10; i++) {
-      //  p.model(Resources.digits[i]);
+      p.model(Resources.digits[i]);
     }
+    /*
+        let iw = 255,
+        let ih = 255;
+        Resources.reflectionImg.loadPixels();
+        for (let x = 0; x < iw; x++) {
+          for (let y = 0; y < iw; y++) {
+            Resources.reflectionImg.set(x, y, [255, 255, 0, 255 - x]);
+            Resources.reflectionImg.updatePixels();
+          }
+        }
+    */
+    // Warmup: compile shaders by rendering with all materials once
+    p.push();
+    p.shininess(200);
+    p.specularMaterial(50);
+    p.metalness(100);
+    p.imageLight(Resources.reflectionImg);
+    p.box(1); // dummy geometry to compile shaders
+    p.pop();
   };
 
   p.draw = function () {
-    p.background(0);
-    drawNum(Resources.digits[p.poster.getCounter()]);
+    p.background(255, 0, 0);
+    p.imageLight(Resources.reflectionImg);
+    // Warm up imageLight on first frame only
+    drawNum(Resources.digits[p.poster.counter]);
   };
 
   function drawNum(objModel) {
@@ -51,7 +73,6 @@ window.sketch = function (p) {
     p.shininess(200);
     p.specularMaterial(50);
     p.metalness(100);
-    p.imageLight(Resources.reflectionImg);
     // flip model upside down
     p.rotateX(p.PI);
     // increase size if user is on either side
@@ -72,36 +93,21 @@ window.sketch = function (p) {
   }
 
   function updateGeometry(geometry) {
-    for (let i = 0; i < geometry.vertices.length; i += 1500) {
-      // Vertex
+    const step = 3000; // Render fewer cones (increase step size)
+    for (let i = 0; i < geometry.vertices.length; i += step) {
       let v = geometry.vertices[i];
-
-      // Calculate the direction of the vertex from the center
       let direction = p.createVector(v.x, v.y, v.z).normalize();
-
-      // Cone Size
-
       let coneLength = p.map(p.abs(p.poster.posNormal.x - 0.5), 0, 0.5, 0, 10);
-      let coneRadius = 0.25;  // Radius of the cone base
+      let coneRadius = 0.25;
 
       p.push();
-
-      // Position the cone at the vertex
       p.translate(v.x, v.y, v.z);
-
-      // Align the cone to the direction vector
       let rotationAxis = p.createVector(0, 1, 0).cross(direction).normalize();
       let angle = p.acos(p.createVector(0, 1, 0).dot(direction));
-
-      // Ensure consistent rotation even for edge cases (ChatGPT)
       if (rotationAxis.mag() > 0) {
         p.rotate(angle, rotationAxis);
       }
-
-      // Offset the cone so its base is flush with the vertex (ChatGPT)
       p.translate(0, coneLength / 2, 0);
-
-      // Draw the cone
       p.noStroke();
       p.cone(coneRadius, coneLength);
       p.pop();

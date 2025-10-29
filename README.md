@@ -1,5 +1,5 @@
-# Templates for Reactive Signs Module 2023
-Templates for the 2024 module
+# Templates for Reactive Signs Module 2025
+Templates for the 2025 module
 
 The repository contains a number of basic examples in the Poster_Templates, together with a custom libraries for handling skeleton tracking etc. 
 
@@ -20,6 +20,11 @@ These variables provide units which are safer than using pixel coordinates.
  ```javascript
 poster.vw // 1 percent of viewport width
 poster. vh // 1  percent of viewport height
+```
+
+Use getCounter to find the correct number to be displayed: 
+ ```javascript
+    poster.getCounter() // the number that should be displayed
 ```
 
 #  Testing your code on the duel display
@@ -55,23 +60,6 @@ Let's say you want to test out the folder called "my_demo" in the Poster_Templat
 - Move "Poster" to the desktop of the Dual-Monitor PC.
 - Click the "startPoster" icon on the desktop 
 - Your project should now run after a few seconds
-
-
-#  Running realSense OSC (rs2wsBlob) - Optional
-The Processing (JAVA) application connects to the realsense camera, and provides all the data over OSC. 
-
-To run, install [Processing]( https://processing.org/download).
-
-Navigate to the rs2wsBlob folder, and open any file with Processing.
-
-Install the following libraries via the Library Manager
-
-- bildspur.realsense
-- controlP5
-- oscP5
-- opencv
-
-Hit the play button.
 
 #  Recording Screen Capture 
 

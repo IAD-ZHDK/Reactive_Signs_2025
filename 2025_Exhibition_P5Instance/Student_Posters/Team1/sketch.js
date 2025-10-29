@@ -12,7 +12,6 @@ window.Team1Resources = window.Team1Resources || {
   models: {},
   font: null,
   preload: function (p) {
-
     const BASE_PATH = window.basePath;
     // Use absolute paths from the public root
     console.log("preload team1 resources")
@@ -47,7 +46,6 @@ window.Team1Resources = window.Team1Resources || {
     this.models.oneTop = p.loadModel(`${BASE_PATH}/objects/1Top.obj`);
     this.models.oneBottom = p.loadModel(`${BASE_PATH}/objects/1Bottom.obj`);
     this.font = p.loadFont(`${BASE_PATH}/barlow_condensed.otf`);
-
   }
 };
 
@@ -177,7 +175,7 @@ window.sketch = function (p) {
     p.ambientLight(255);
     p.ambientMaterial(255, 255, 255);
 
-    state = p.poster ? p.poster.getCounter() : 0;
+    state = p.poster ? p.poster.counter : 0;
 
     let isoX = 300;
     let isoY = 0;

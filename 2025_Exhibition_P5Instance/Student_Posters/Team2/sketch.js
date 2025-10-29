@@ -108,18 +108,18 @@ window.sketch = function (p) {
     }
 
     let direction = 0;
-    let leftImage = p.poster.getCounter();
-    let rightImage = p.poster.getCounter();
+    let leftImage = p.poster.counter;
+    let rightImage = p.poster.counter;
     let centerImage = pastNumber;
 
     // get direction
-    if (pastNumber < p.poster.getCounter()) {
+    if (pastNumber < p.poster.counter) {
       direction = -95 * p.poster.vw;
     } else {
       direction = 95 * p.poster.vw;
     }
 
-    if (movingFlag == false && pastNumber != p.poster.getCounter()) {
+    if (movingFlag == false && pastNumber != p.poster.counter) {
       imgXPosTarget += direction;
       movingFlag = true;
     }
@@ -132,8 +132,8 @@ window.sketch = function (p) {
       imgXPosCurrent = 40 * p.poster.vw;
       imgXPosTarget = imgXPosCurrent;
       movingFlag = false;
-      pastNumber = p.poster.getCounter();
-      centerImage = p.poster.getCounter();
+      pastNumber = p.poster.counter;
+      centerImage = p.poster.counter;
     }
 
     // display the current number

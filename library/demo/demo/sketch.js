@@ -1,59 +1,43 @@
-// Convert demo sketch to p5 instance mode
-let sketch = function (p) {
-  let font;
+let font;
+function preload() {  
+  // load the font
+  font = loadFont('barlow_condensed.otf');
+}
+function setup() {
+  createCanvas(100,100); // poster is resized automatically
+  textSize(120 * poster.vw);
+  textFont(font);
+  strokeWeight(3)
+}
 
-  p.preload = function () {
-    // load the font
-    font = p.loadFont('barlow_condensed.otf');
-  };
+function draw() {
+  background(0, 0, 0, 20);
+  fill(255);
+  wordEffect(poster.getCounter(), width / 2, height / 2);
+}
 
-  p.setup = function () {
-    p.createCanvas(100, 100); // poster is resized automatically
-    p.textSize(120 * p.poster.vw);
-    p.textFont(font);
-    p.strokeWeight(3);
-  };
+function windowResized() {
+  textSize(120 * poster.vw);
+}
 
-  p.draw = function () {
-    p.background(255, 0, 0, 20);
-    p.fill(255);
-    wordEffect(p.poster.getCounter(), p.width / 2, p.height / 2);
-    updateNumbers();
-  };
-
-  function updateNumbers() {
-    // just for checking the canvas number attribute
-    const canvasEl = p._renderer && p._renderer.canvas;
-    if (canvasEl) {
-      // set new number attribute for the canvas
-      canvasEl.setAttribute('number', p.floor(p.millis() / 1000) % 9);
-    }
-  }
-
-  p.windowResized = function () {
-    p.textSize(120 * p.poster.vw);
-  };
-
-  function wordEffect(number, x, y) {
-    p.push();
-    p.translate(x, y);
-    // p5 instance-safe references
-    const rotation = (-p.PI * 0.25) + (p.poster.posNormal.x * 0.5 * p.PI);
-    p.rotate(rotation);
+function wordEffect(number, x, y) {
+  push()
+    translate(x, y)
+    let rotation = (-PI * 0.25) + (poster.posNormal.x * 0.5 * PI)
+    rotate(rotation);
     // The textBounds function returns the bounding box of the text.
-    const bbox = font.textBounds("" + number, 0, 0);
-    p.translate((-(bbox.x) / 2) - (bbox.w / 2), +(bbox.h / 2));
-
-    p.text("" + number, 0, 0);
-    p.noFill();
-    p.stroke(255, 255, 0);
-    p.rect(bbox.x, bbox.y, bbox.w, bbox.h);
-    p.pop();
-  }
-
-};
-
-//let myp5 = new p5(sketch, 'demo-container');
+    // This can be very useful when you need to precisely position text.
+    let bbox = font.textBounds(""+number, 0, 0,);
+    translate((-(bbox.x)/2)-(bbox.w/2), +(bbox.h/2));
+    // uncommment the following line to see the bounding box
+    
+   
+    text(""+number, 0, 0)
+    noFill();
+    stroke(255,0,0)
+    rect(bbox.x, bbox.y, bbox.w, bbox.h);
+  pop();
+}
 
 
 
