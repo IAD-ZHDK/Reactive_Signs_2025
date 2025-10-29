@@ -6,8 +6,10 @@ echo closing open chrome windows...
 TASKKILL /F /IM chrome.exe
 TASKKILL /F /IM javaw.exe
 
-echo starting tracker
-start rs2wsBlob.lnk &
+echo starting cameraPoseOSC
+cd "C:\Users\user\Desktop\cameraPoseOSC\" &
+start cameraPoseOSC.exe 
+
 
 TIMEOUT /t 10
 echo npm version:
@@ -22,9 +24,9 @@ TIMEOUT /t 2
 start chrome --start-fullscreen http://localhost:8081 &
 //start chrome --start http://localhost:8081
 visuaviv
-cd "C:\Users\user\Desktop\2024_Exhibition\" &
+cd "C:\Users\user\Desktop\Reactive_Signs_2025\2025_Exhibition\" &
 
-echo "C:\Users\user\Desktop\2024_Exhibition\"
+echo "C:\Users\user\Desktop\Reactive_Signs_2025\2025_Exhibition\"
 
 echo start server in background
 CMD /C http-server -p 8081
