@@ -14,24 +14,50 @@ Cross-platform pose detection system using YOLO that sends pose data via OSC (UD
 
 ## Quick Start
 
+### macOS / Linux
+
 1. **Setup environment:**
    ```bash
-   # On macOS/Linux:
    ./setup.sh
-   
-   # On Windows:
-   setup.bat
    ```
 
 2. **Run pose detection:**
    ```bash
-   # Activate virtual environment
-   source venv/bin/activate  # macOS/Linux
-   # or
-   venv\Scripts\activate     # Windows
-   
-   # Run with WebSocket
+   # Virtual environment is auto-activated by setup.sh
    python pose_detector_yoloV8.py
+   
+   # Or manually activate:
+   source venv/bin/activate
+   python pose_detector_yoloV8.py
+   ```
+
+### Windows
+
+1. **Prerequisites:**
+   - Python 3.9+ installed with "Add Python to PATH" checked
+   - Download from: https://www.python.org/downloads/
+
+2. **Setup environment:**
+   - Double-click `setup.bat` in File Explorer, OR
+   - Open Command Prompt in this folder and run:
+     ```cmd
+     setup.bat
+     ```
+
+3. **Run pose detection:**
+   ```cmd
+   # Option 1: Use the batch file (auto-activates virtual environment)
+   python pose_detector_yoloV8.py
+   
+   # Option 2: Manually activate virtual environment
+   venv\Scripts\activate.bat
+   python pose_detector_yoloV8.py
+   ```
+
+4. **To deactivate virtual environment:**
+   ```cmd
+   deactivate
+   ```
    
    
 ## OSC Output Format
@@ -108,6 +134,8 @@ Options:
 
 ## Troubleshooting
 
+### All Platforms
+
 **WebSocket connection failed:**
 - Ensure realSenseOSC or compatible server is running on port 8025
 - System will fallback to UDP OSC automatically
@@ -120,3 +148,28 @@ Options:
 - Adjust confidence threshold with `--confidence`
 - Ensure good lighting and clear view of person
 - Use crop area (C key) to focus on specific region
+
+### Windows Specific
+
+**"Python not found" or "'python' is not recognized":**
+- Reinstall Python and ensure "Add Python to PATH" is checked during installation
+- Restart Command Prompt after installing Python
+- Or use `py --version` instead of `python --version`
+
+**Virtual environment activation fails:**
+- Try running Command Prompt as Administrator
+- Or manually install requirements:
+  ```cmd
+  python -m pip install -r requirements.txt
+  ```
+
+**Permission denied when running setup.bat:**
+- Right-click setup.bat → "Run as administrator"
+
+**ModuleNotFoundError: No module named 'cv2':**
+- Delete the `venv` folder and run `setup.bat` again
+- Or manually reinstall: `pip install opencv-python`
+
+**GPU/CUDA not detected:**
+- For GPU acceleration, install CUDA Toolkit from NVIDIA
+- Then: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`
