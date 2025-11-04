@@ -47,7 +47,8 @@ class YOLODetectorOSC:
                  model_name: str = "yolov8n.pt",
                  weights_path: Optional[str] = None,
                  confidence_threshold: float = 0.4,
-                 use_websockets: bool = True):
+                 use_websockets: bool = True,
+                 gpu_id: Optional[int] = None):
         
         if not YOLO_AVAILABLE:
             raise ImportError("Ultralytics YOLO is required. Install with: pip install ultralytics")
@@ -60,6 +61,7 @@ class YOLODetectorOSC:
         self.frame_count = 0
         self.process_every_n_frames = 1  # Process every frame by default
         self.inference_size = 256  # Default inference size (smaller for speed)
+        self.gpu_id = gpu_id  # Store requested GPU ID
 
         # Timing accumulators for perf debugging (seconds)
         self.timing = {'decode': 0.0, 'preprocess': 0.0, 'inference': 0.0, 'draw': 0.0}
@@ -143,24 +145,45 @@ class YOLODetectorOSC:
             # Use CUDA if available (guarded)
             if TORCH_AVAILABLE:
                 try:
-                    self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-                except Exception:
+                    if torch.cuda.is_available():
+                        gpu_count = torch.cuda.device_count()
+                        print(f"\n{'='*60}")
+                        print(f"GPU Detection: {gpu_count} CUDA device(s) available")
+                        for i in range(gpu_count):
+                            gpu_name = torch.cuda.get_device_name(i)
+                            gpu_memory = torch.cuda.get_device_properties(i).total_memory / 1024**3
+                            print(f"  GPU {i}: {gpu_name} ({gpu_memory:.1f} GB)")
+                        print(f"{'='*60}\n")
+                        
+                        # If specific GPU requested, use it; otherwise use default
+                        if self.gpu_id is not None:
+                            if self.gpu_id < gpu_count:
+                                self.device = f'cuda:{self.gpu_id}'
+                                print(f"✓ Using GPU {self.gpu_id}: {torch.cuda.get_device_name(self.gpu_id)}")
+                            else:
+                                print(f"⚠ Warning: GPU {self.gpu_id} not available. Found {gpu_count} GPU(s). Using default GPU 0.")
+                                self.device = 'cuda:0'
+                        else:
+                            self.device = 'cuda:0'
+                            print(f"✓ Using default GPU 0: {torch.cuda.get_device_name(0)}")
+                    else:
+                        self.device = 'cpu'
+                        print(f"\n{'='*60}")
+                        print("⚠ No CUDA GPUs detected - using CPU")
+                        print(f"{'='*60}\n")
+                except Exception as e:
                     self.device = 'cpu'
+                    print(f"⚠ GPU detection failed: {e}")
+                    print("Falling back to CPU")
                 try:
                     self.model.to(self.device)
                 except Exception:
                     pass
-            # If running on CUDA, try set model to half precision for faster inference
-            if TORCH_AVAILABLE and self.device == 'cuda':
-                try:
-                    # ultralytics YOLO model stores PyTorch model in .model
-                    if hasattr(self.model, 'model') and hasattr(self.model.model, 'half'):
-                        self.model.model.half()
-                except Exception:
-                    pass
+            # Note: FP16 half precision can cause dtype mismatches with some YOLO models
+            # Ultralytics YOLO handles precision internally, so we don't manually call .half()
             else:
                 self.device = 'cpu'
-            print(f"YOLO model loaded: {loaded_name} on {self.device}")
+            print(f"\n✓ YOLO model loaded: {loaded_name} on {self.device}\n")
         except Exception as e:
             print(f"Failed to load YOLO model: {e}")
             print("Trying to download default model...")
@@ -520,19 +543,38 @@ class YOLODetectorOSC:
             print(f"Crop area: ({self.crop_x1}, {self.crop_y1}) to ({self.crop_x2}, {self.crop_y2})")
     
     def _run_ws_server(self):
-        """Run WebSocket server in separate thread"""
-        async def handle_client(websocket):
+        """Run WebSocket server in separate thread
+
+        Accept clients even when they don't offer a subprotocol (prevents NegotiationError).
+        Logs offered and selected subprotocols for debugging.
+        """
+        # Accept either signature (websocket) or (websocket, path) depending on websockets version
+        async def handle_client(websocket, path=None):
+            # Log offered subprotocol header and selected subprotocol
+            offered = None
+            try:
+                # Some websockets versions expose headers on the connection object
+                offered = websocket.request_headers.get('Sec-WebSocket-Protocol')
+            except Exception:
+                offered = None
+
+            selected = getattr(websocket, 'subprotocol', None)
+            if offered or selected or path is not None:
+                print(f"WebSocket connection: path={path!r}, offered={offered!r}, selected={selected!r}")
+
             self.ws_clients.add(websocket)
             try:
                 async for _ in websocket:  # Keep connection alive
                     pass
             finally:
-                self.ws_clients.remove(websocket)
+                # Use discard to avoid KeyError if already removed
+                self.ws_clients.discard(websocket)
 
         async def serve():
             # capture the running loop so other threads can schedule coroutines on it
             self.ws_loop = asyncio.get_running_loop()
-            async with websockets.serve(handle_client, self.osc_host, self.osc_port, subprotocols=["osc"]):
+            # Do not require a specific subprotocol so clients that don't send one are accepted
+            async with websockets.serve(handle_client, self.osc_host, self.osc_port, subprotocols=None):
                 await asyncio.Future()  # Run forever
 
         # Run the websocket server in this thread's event loop
@@ -931,6 +973,7 @@ def main():
     parser.add_argument('--weights', default=None, help='Path to custom weights (.pt) to load')
     parser.add_argument('--use-exdark', action='store_true', help='Search local exdark folder for trained weights and use them')
     parser.add_argument('--exdark-path', default='./exdark', help='Path to local exdark repo/folder')
+    parser.add_argument('--gpu', type=int, default=None, help='GPU device ID to use (e.g., 0, 1, 2). If not specified, uses default CUDA device.')
     
     args = parser.parse_args()
     # Determine which weights to use (explicit weights override --use-exdark)
@@ -966,7 +1009,8 @@ def main():
             camera_id=args.camera,
             model_name=args.model,
             weights_path=weights_to_use,
-            confidence_threshold=args.confidence
+            confidence_threshold=args.confidence,
+            gpu_id=args.gpu
         )
         detector.run()
     except Exception as e:
