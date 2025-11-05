@@ -747,6 +747,15 @@ class YOLODetectorOSC:
             cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         except:
             cv2.namedWindow(window_name)
+            
+        # Force a consistent display size across platforms
+        display_width = 1280
+        display_height = 720
+        cv2.resizeWindow(window_name, display_width, display_height)
+
+        cv2.setMouseCallback(window_name, self.mouse_callback)
+
+        cv2.setMouseCallback(window_name, self.mouse_callback)
         
         cv2.setMouseCallback(window_name, self.mouse_callback)
         
