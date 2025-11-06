@@ -235,6 +235,17 @@ class YOLODetectorOSC:
         self.settings_file = "detector_settings.json"
         self.load_settings()
 
+        # Font configuration (DUPLEX is better for small/low-res displays than SIMPLEX)
+        self.font = cv2.FONT_HERSHEY_DUPLEX
+        self.font_size_title = 0.7      # Large titles (e.g., "CROP MODE")
+        self.font_size_main = 0.6       # Main info (e.g., "Model:", "FPS:")
+        self.font_size_detail = 0.5     # Details (parameters, crop coords)
+        self.font_size_small = 0.4      # Small labels (detections)
+        self.font_thickness_bold = 2    # Bold text
+        self.font_thickness_normal = 1  # Normal text
+        self.font_outline_color = (0, 0, 0)  # Black outline for high contrast
+        self.font_outline_thickness = 3  # Outline thickness in pixels
+
         # Smoothed average point for stable output (normalized x,y,z)
         self.smoothed_point = None
         self.smoothing_alpha = 0.2  # base smoothing factor (0-1)
@@ -402,10 +413,10 @@ class YOLODetectorOSC:
                 cv2.circle(image, (center_x, center_y), 4, (0, 0, 255), -1)
 
                 # Draw confidence and coordinates for debugging
-                cv2.putText(image, f"conf: {conf:.2f}", (int(x1), int(y1) - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(image, f"y: {int(y2-y1)}", (int(x1), int(y2) + 20),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                self.draw_text_with_outline(image, f"conf: {conf:.2f}", (int(x1), int(y1) - 10),
+                            self.font, self.font_size_detail, (0, 255, 0), self.font_thickness_normal)
+                self.draw_text_with_outline(image, f"y: {int(y2-y1)}", (int(x1), int(y2) + 20),
+                            self.font, self.font_size_detail, (0, 255, 0), self.font_thickness_normal)
                     
             
     def configure_camera_for_low_light(self):
@@ -422,6 +433,17 @@ class YOLODetectorOSC:
             self.cap.set(cv2.CAP_PROP_BRIGHTNESS, 0.5)      # Brightness
         except:
             pass
+
+    def draw_text_with_outline(self, image, text, position, font, font_size, font_color, thickness):
+        """Draw text with high-contrast black outline for better visibility"""
+        # Draw outline in black (multiple passes for better coverage)
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx != 0 or dy != 0:
+                    outline_pos = (position[0] + dx, position[1] + dy)
+                    cv2.putText(image, text, outline_pos, font, font_size, self.font_outline_color, self.font_outline_thickness)
+        # Draw main text on top
+        cv2.putText(image, text, position, font, font_size, font_color, thickness)
 
     def enhance_frame(self, frame, for_inference: bool = False):
         """Apply various enhancements to improve low-light performance"""
@@ -671,38 +693,38 @@ class YOLODetectorOSC:
         # Draw crop rectangle if in crop mode
         if self.show_crop_interface:
             cv2.rectangle(image, (self.crop_x1, self.crop_y1), (self.crop_x2, self.crop_y2), (0, 255, 0), 2)
-            cv2.putText(image, "CROP MODE - Click and drag to set crop area",
-                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            self.draw_text_with_outline(image, "CROP MODE - Click and drag to set crop area",
+                        (10, 30), self.font, self.font_size_title, (0, 255, 0), self.font_thickness_bold)
         else:
             cv2.rectangle(image, (self.crop_x1, self.crop_y1), (self.crop_x2, self.crop_y2), (255, 255, 0), 2)
 
         # Draw status information
-        status_y = height - 200
+        status_y = 50
         # Try to display a sensible model name if available
         try:
             model_display = getattr(self, 'model_name', None) or getattr(self.model, 'path', None) or self.model.__class__.__name__
         except Exception:
             model_display = 'yolov8n'
-        cv2.putText(image, f"Model: {model_display}", (10, status_y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
-        cv2.putText(image, f"FPS: {self.current_fps}", (10, status_y + 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
-        cv2.putText(image, f"OSC: /depth -> {self.osc_host}:{self.osc_port}", (10, status_y + 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-        cv2.putText(image, f"Crop: ({self.crop_x1},{self.crop_y1}) to ({self.crop_x2},{self.crop_y2})",
-                    (10, status_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+        self.draw_text_with_outline(image, f"Model: {model_display}", (10, status_y),
+                    self.font, self.font_size_main, (255, 255, 0), self.font_thickness_bold)
+        self.draw_text_with_outline(image, f"FPS: {self.current_fps}", (10, status_y + 20),
+                    self.font, self.font_size_main, (255, 255, 0), self.font_thickness_bold)
+        self.draw_text_with_outline(image, f"OSC: /depth -> {self.osc_host}:{self.osc_port}", (10, status_y + 40),
+                    self.font, self.font_size_detail, (255, 255, 0), self.font_thickness_normal)
+        self.draw_text_with_outline(image, f"Crop: ({self.crop_x1},{self.crop_y1}) to ({self.crop_x2},{self.crop_y2})",
+                    (10, status_y + 60), self.font, self.font_size_detail, (255, 255, 0), self.font_thickness_normal)
 
         # Editable parameter values (live)
         params_y = status_y + 85
-        cv2.putText(image, f"confidence: {self.confidence_threshold:.2f}    inference_size: {self.inference_size}    process_every_n_frames: {self.process_every_n_frames}",
-                    (10, params_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 0), 1)
-        cv2.putText(image, f"gain: {self.gain:.2f}    auto_gain: {int(self.auto_gain)}    accumulation: {int(self.enable_accumulation)}    show_enhanced: {int(self.show_enhanced)}    show_detections: {int(self.show_detections)}",
-                    (10, params_y + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 0), 1)
+        self.draw_text_with_outline(image, f"confidence: {self.confidence_threshold:.2f}    inference_size: {self.inference_size}    process_every_n_frames: {self.process_every_n_frames}",
+                    (10, params_y), self.font, self.font_size_detail, (200, 200, 0), self.font_thickness_normal)
+        self.draw_text_with_outline(image, f"gain: {self.gain:.2f}    auto_gain: {int(self.auto_gain)}    accumulation: {int(self.enable_accumulation)}    show_enhanced: {int(self.show_enhanced)}    show_detections: {int(self.show_detections)}",
+                    (10, params_y + 18), self.font, self.font_size_detail, (200, 200, 0), self.font_thickness_normal)
         # Show smoothing alpha and whether enhancement is applied to inference
-        cv2.putText(image, f"smoothing_alpha: {self.smoothing_alpha:.3f}    apply_enhancement_to_inference: {int(self.apply_enhancement_to_inference)}", (10, params_y + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 0), 1)
+        self.draw_text_with_outline(image, f"smoothing_alpha: {self.smoothing_alpha:.3f}    apply_enhancement_to_inference: {int(self.apply_enhancement_to_inference)}", (10, params_y + 36), self.font, self.font_size_detail, (200, 200, 0), self.font_thickness_normal)
         # Show paused state
-        cv2.putText(image, f"paused: {int(self.paused)}", (10, params_y + 54), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200,200,0), 1)
-        cv2.putText(image, f"bg_subtract: {int(self.use_bg_subtraction)}  bg_lr: {self.bg_subtract_learning_rate}", (10, params_y + 72), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200,200,0), 1)
+        self.draw_text_with_outline(image, f"paused: {int(self.paused)}", (10, params_y + 54), self.font, self.font_size_detail, (200,200,0), self.font_thickness_normal)
+        self.draw_text_with_outline(image, f"bg_subtract: {int(self.use_bg_subtraction)}  bg_lr: {self.bg_subtract_learning_rate}", (10, params_y + 72), self.font, self.font_size_detail, (200,200,0), self.font_thickness_normal)
 
         # Draw controls
         controls = [
@@ -724,8 +746,8 @@ class YOLODetectorOSC:
         ]
 
         for i, control in enumerate(controls):
-            cv2.putText(image, control, (width - 700, 30 + i * 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
+            self.draw_text_with_outline(image, control, (width - 700, 30 + i * 20),
+                        self.font, self.font_size_detail, (255, 255, 0), self.font_thickness_normal)
    
     
     def scale_font_size(self, base_size: float) -> float:
@@ -874,8 +896,8 @@ class YOLODetectorOSC:
 
                                     # Draw average point
                                     cv2.circle(display_frame, (avg_x, avg_y), 10, (255, 0, 0), -1)
-                                    cv2.putText(display_frame, "AVG", (avg_x + 15, avg_y),
-                                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+                                    self.draw_text_with_outline(display_frame, "AVG", (avg_x + 15, avg_y),
+                                                self.font, self.font_size_title, (255, 0, 0), self.font_thickness_bold)
                 
                 # Measure draw/UI/display time
                 draw_t0 = time.time()
