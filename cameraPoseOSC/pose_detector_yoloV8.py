@@ -88,6 +88,18 @@ AVAILABLE_MODELS = {
         'file': None,  # Custom weights loaded from exdark folder
         'description': 'Trained on EXDark dataset. Best for low-light/night.',
         'optimized_for': 'low-light'
+    },
+    'rtdetr-l': {
+        'name': 'RT-DETR Large',
+        'file': 'rtdetr-l.pt',
+        'description': 'Real-Time DETR. Fast detection with good accuracy.',
+        'optimized_for': 'balanced'
+    },
+    'rtdetr-x': {
+        'name': 'RT-DETR X-Large',
+        'file': 'rtdetr-x.pt',
+        'description': 'Real-Time DETR X-Large. Better accuracy, slower speed.',
+        'optimized_for': 'accuracy'
     }
 }
 
@@ -277,6 +289,8 @@ class YOLODetectorOSC:
         self.show_crop_interface = False
         self.show_detections = True
         self.paused = False
+        self.crop_click_count = 0  # For two-click crop mode (0, 1, or 2)
+        self.current_model_name = model_name  # Track the displayed model name
         
         # Performance tracking
         self.fps_counter = 0
@@ -583,38 +597,49 @@ class YOLODetectorOSC:
         print("Crop reset to full frame")
     
     def mouse_callback(self, event, x, y, flags, param):
-        """Handle mouse events for crop area selection"""
+        """Handle mouse events for crop area selection - two-click mode"""
         if not self.show_crop_interface:
             return
-            
+        
         if event == cv2.EVENT_LBUTTONDOWN:
-            self.dragging = True
-            self.drag_start = (x, y)
-            self.crop_x1 = x
-            self.crop_y1 = y
+            # Scale mouse coordinates from display size back to actual frame size
+            # Display is 1280x720, frame is camera_width x camera_height
+            display_width = 1280
+            display_height = 720
+            scale_x = self.camera_width / display_width
+            scale_y = self.camera_height / display_height
             
-        elif event == cv2.EVENT_MOUSEMOVE and self.dragging:
-            self.crop_x2 = x
-            self.crop_y2 = y
+            # Map display coordinates to frame coordinates
+            frame_x = int(x * scale_x)
+            frame_y = int(y * scale_y)
             
-        elif event == cv2.EVENT_LBUTTONUP:
-            self.dragging = False
-            self.crop_x2 = x
-            self.crop_y2 = y
-            
-            # Ensure crop coordinates are valid
-            if self.crop_x1 > self.crop_x2:
-                self.crop_x1, self.crop_x2 = self.crop_x2, self.crop_x1
-            if self.crop_y1 > self.crop_y2:
-                self.crop_y1, self.crop_y2 = self.crop_y2, self.crop_y1
+            if self.crop_click_count == 0:
+                # First click: set upper-left corner
+                self.crop_x1 = frame_x
+                self.crop_y1 = frame_y
+                self.crop_click_count = 1
+                print(f"Crop point 1 (upper-left): ({self.crop_x1}, {self.crop_y1})")
                 
-            # Clamp to image bounds
-            self.crop_x1 = max(0, min(self.crop_x1, self.camera_width))
-            self.crop_y1 = max(0, min(self.crop_y1, self.camera_height))
-            self.crop_x2 = max(0, min(self.crop_x2, self.camera_width))
-            self.crop_y2 = max(0, min(self.crop_y2, self.camera_height))
-            
-            print(f"Crop area: ({self.crop_x1}, {self.crop_y1}) to ({self.crop_x2}, {self.crop_y2})")
+            elif self.crop_click_count == 1:
+                # Second click: set lower-right corner
+                self.crop_x2 = frame_x
+                self.crop_y2 = frame_y
+                self.crop_click_count = 0  # Reset for next crop if needed
+                
+                # Ensure crop coordinates are valid
+                if self.crop_x1 > self.crop_x2:
+                    self.crop_x1, self.crop_x2 = self.crop_x2, self.crop_x1
+                if self.crop_y1 > self.crop_y2:
+                    self.crop_y1, self.crop_y2 = self.crop_y2, self.crop_y1
+                    
+                # Clamp to image bounds
+                self.crop_x1 = max(0, min(self.crop_x1, self.camera_width))
+                self.crop_y1 = max(0, min(self.crop_y1, self.camera_height))
+                self.crop_x2 = max(0, min(self.crop_x2, self.camera_width))
+                self.crop_y2 = max(0, min(self.crop_y2, self.camera_height))
+                
+                print(f"Crop point 2 (lower-right): ({self.crop_x2}, {self.crop_y2})")
+                print(f"Crop area set: ({self.crop_x1}, {self.crop_y1}) to ({self.crop_x2}, {self.crop_y2})")
     
     def _run_ws_server(self):
         """Run WebSocket server in separate thread
@@ -776,6 +801,9 @@ class YOLODetectorOSC:
             except Exception:
                 self.person_class_idx = None
             
+            # Store the model name for display
+            self.current_model_name = loaded_name
+            
             print(f"✓ Model loaded successfully: {loaded_name}")
             print(f"{'='*60}\n")
             return True
@@ -795,18 +823,23 @@ class YOLODetectorOSC:
         # Draw crop rectangle if in crop mode
         if self.show_crop_interface:
             cv2.rectangle(image, (self.crop_x1, self.crop_y1), (self.crop_x2, self.crop_y2), (0, 255, 0), 2)
-            self.draw_text_with_outline(image, "CROP MODE - Click and drag to set crop area",
-                        (10, 30), self.font, self.font_size_title, (0, 255, 0), self.font_thickness_bold)
+            # Draw corner circles to indicate crop points
+            cv2.circle(image, (self.crop_x1, self.crop_y1), 8, (0, 255, 0), -1)
+            cv2.circle(image, (self.crop_x2, self.crop_y2), 8, (0, 255, 0), -1)
+            
+            if self.crop_click_count == 0:
+                self.draw_text_with_outline(image, "CROP MODE - Click upper-left corner",
+                            (10, 30), self.font, self.font_size_title, (0, 255, 0), self.font_thickness_bold)
+            else:
+                self.draw_text_with_outline(image, "CROP MODE - Click lower-right corner",
+                            (10, 30), self.font, self.font_size_title, (255, 165, 0), self.font_thickness_bold)
         else:
             cv2.rectangle(image, (self.crop_x1, self.crop_y1), (self.crop_x2, self.crop_y2), (255, 255, 0), 2)
 
         # Draw status information
         status_y = 50
-        # Try to display a sensible model name if available
-        try:
-            model_display = getattr(self, 'model_name', None) or getattr(self.model, 'path', None) or self.model.__class__.__name__
-        except Exception:
-            model_display = 'yolov8n'
+        # Display the currently loaded model name
+        model_display = getattr(self, 'current_model_name', 'yolov8n')
         self.draw_text_with_outline(image, f"Model: {model_display}", (10, status_y),
                     self.font, self.font_size_main, (255, 255, 0), self.font_thickness_bold)
         self.draw_text_with_outline(image, f"FPS: {self.current_fps}", (10, status_y + 20),
@@ -832,6 +865,7 @@ class YOLODetectorOSC:
         controls = [
             "Controls:",
             "C - Toggle crop interface",
+            "   (then click 2 times: upper-left, lower-right)",
             "D - Toggle detections overlay",
             "R - Reset crop area",
             "S - Save settings",
@@ -844,7 +878,7 @@ class YOLODetectorOSC:
             ", / . - Decrease / Increase confidence threshold",
             "P / O - Increase / Decrease smoothing alpha (less/more smoothing)",
             "",
-            "Model Selection (Press 1-8):",
+            "Model Selection (Press 1-9, or use --model flag):",
             "1 - YOLOv8 Nano (fastest)",
             "2 - YOLOv8 Small (balanced)",
             "3 - YOLOv8 Medium (accurate)",
@@ -853,6 +887,7 @@ class YOLODetectorOSC:
             "6 - YOLOv10 Nano",
             "7 - YOLOv10 Small",
             "8 - EXDark (low-light optimized)",
+            "9 - RT-DETR (real-time detection)",
             "",
             "SPACE - Pause / Resume",
             "Q / ESC - Quit"
@@ -895,10 +930,6 @@ class YOLODetectorOSC:
         display_height = 720
         cv2.resizeWindow(window_name, display_width, display_height)
 
-        cv2.setMouseCallback(window_name, self.mouse_callback)
-
-        cv2.setMouseCallback(window_name, self.mouse_callback)
-        
         cv2.setMouseCallback(window_name, self.mouse_callback)
         
         try:
@@ -1156,11 +1187,101 @@ class YOLODetectorOSC:
                             self.frame_count = 0
                     else:
                         print("✗ No EXDark weights found in ./exdark folder")
+                elif key == ord('9'):
+                    # Load RT-DETR Large (real-time detection)
+                    if self.load_model(AVAILABLE_MODELS['rtdetr-l']['file']):
+                        self.frame_count = 0
                     
         except KeyboardInterrupt:
             print("\nInterrupted by user")
         finally:
             self.cleanup()
+
+def ensure_model_available(model_file):
+    """
+    Ensure a model file is available. If not found locally, attempt to download it.
+    
+    Args:
+        model_file: Name of the model file (e.g., 'yolov8n.pt', 'yolov8s.pt')
+    
+    Returns:
+        True if model is available, False otherwise
+    """
+    if model_file is None:
+        return False
+    
+    # Check if file exists locally
+    if os.path.exists(model_file):
+        return True
+    
+    print(f"\n{'='*70}")
+    print(f"Model not found: {model_file}")
+    print(f"Attempting to download from Ultralytics...")
+    print(f"{'='*70}")
+    
+    try:
+        from ultralytics import YOLO
+        
+        # Try to download by creating a YOLO instance with the model name
+        # This will automatically download if not found
+        print(f"Downloading {model_file}...")
+        model = YOLO(model_file)
+        
+        print(f"✓ Model downloaded successfully!")
+        print(f"{'='*70}\n")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Failed to download model {model_file}: {e}")
+        print(f"Please download manually or use an available model")
+        print(f"{'='*70}\n")
+        return False
+
+def ensure_exdark_available(exdark_path='./exdark'):
+    """
+    Ensure EXDark weights are available. If not found, offer to download them.
+    
+    Args:
+        exdark_path: Path to the exdark directory
+    
+    Returns:
+        Path to the best.pt or last.pt file if found, None otherwise
+    """
+    exdark_dir = os.path.expanduser(exdark_path)
+    
+    # First check if weights already exist
+    found = []
+    if os.path.exists(exdark_dir):
+        for root, dirs, files in os.walk(exdark_dir):
+            for f in files:
+                if f.endswith('.pt') and ('best' in f.lower() or 'last' in f.lower()):
+                    found.append(os.path.join(root, f))
+    
+    if not found and os.path.exists(exdark_dir):
+        for root, dirs, files in os.walk(exdark_dir):
+            for f in files:
+                if f.endswith('.pt'):
+                    found.append(os.path.join(root, f))
+    
+    if found:
+        # Prefer best.pt over last.pt
+        found.sort(key=lambda p: (0 if 'best' in os.path.basename(p).lower() else 1, p))
+        return found[0]
+    
+    # EXDark weights not found - try to provide guidance
+    print(f"\n{'='*70}")
+    print(f"EXDark low-light weights not found at: {exdark_dir}")
+    print(f"{'='*70}")
+    print(f"\nTo use EXDark for low-light detection, you have two options:\n")
+    print(f"Option 1: Clone the EXDark repository")
+    print(f"  git clone https://github.com/Chongyi-MARL/EXDark.git exdark")
+    print(f"  This will provide the best.pt weights in ./exdark/best.pt\n")
+    print(f"Option 2: Place your trained EXDark .pt file in {exdark_dir}/")
+    print(f"  The script will automatically find it.\n")
+    print(f"For now, using standard YOLOv8 models instead.")
+    print(f"{'='*70}\n")
+    
+    return None
 
 def main():
     parser = argparse.ArgumentParser(description='YOLO Person Detection with OSC Output')
@@ -1203,32 +1324,25 @@ def main():
         model_config = AVAILABLE_MODELS[model_name]
         if model_config['file']:
             model_name = model_config['file']
+            # Ensure this model is available (download if needed)
+            if not ensure_model_available(model_name):
+                print(f"Warning: Could not ensure model {model_name} is available")
         print(f"\n✓ Using model preset: {model_config['name']}")
         print(f"  Optimized for: {model_config['optimized_for']}")
     
     if args.use_exdark and not weights_to_use:
-        # search the exdark path for likely weights (best.pt, last.pt)
-        exdark_dir = os.path.expanduser(args.exdark_path)
-        found = []
-        if os.path.exists(exdark_dir):
-            for root, dirs, files in os.walk(exdark_dir):
-                for f in files:
-                    if f.endswith('.pt') and ('best' in f.lower() or 'last' in f.lower()):
-                        found.append(os.path.join(root, f))
-        # If none found, also scan for any .pt
-        if not found and os.path.exists(exdark_dir):
-            for root, dirs, files in os.walk(exdark_dir):
-                for f in files:
-                    if f.endswith('.pt'):
-                        found.append(os.path.join(root, f))
-
-        if found:
-            # prefer best.pt over last.pt
-            found.sort(key=lambda p: (0 if 'best' in os.path.basename(p).lower() else 1, p))
-            weights_to_use = found[0]
+        # Use helper function to find or guide user to EXDark weights
+        exdark_weights = ensure_exdark_available(args.exdark_path)
+        if exdark_weights:
+            weights_to_use = exdark_weights
             print(f"✓ Using EXDark weights (low-light optimized) found at: {weights_to_use}")
         else:
-            print(f"No .pt weights found under {exdark_dir}; falling back to default model")
+            print(f"No EXDark weights found. Using standard YOLOv8 model instead.")
+    
+    # Ensure the default model is available if no other model specified
+    if not weights_to_use and not (args.use_exdark and not ensure_model_available(model_name)):
+        if not ensure_model_available(model_name):
+            print(f"Warning: Could not ensure model {model_name} is available")
 
     try:
         detector = YOLODetectorOSC(
