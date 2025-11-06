@@ -40,12 +40,10 @@ start chrome --kiosk http://localhost:8081 ^
   --disable-geolocation ^
   --disable-preconnect ^
   --disable-sync ^
-  --enable-automation ^
   --no-crash-upload ^
   --disable-session-crashed-bubble ^
   --disable-infobars ^
   --disable-restore-session-state ^
-  --no-default-browser-check ^
   --disable-blink-features=AutomationControlled ^
   --disk-cache-dir=nul
 
