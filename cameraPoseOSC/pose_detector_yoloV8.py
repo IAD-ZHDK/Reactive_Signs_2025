@@ -39,6 +39,58 @@ except Exception:
     OSC_MSG_BUILDER_AVAILABLE = False
     OscMessageBuilder = None
 
+# Model configurations optimized for different scenarios
+AVAILABLE_MODELS = {
+    'yolov8n': {
+        'name': 'YOLOv8 Nano',
+        'file': 'yolov8n.pt',
+        'description': 'Fastest, lightweight. Good baseline.',
+        'optimized_for': 'speed'
+    },
+    'yolov8s': {
+        'name': 'YOLOv8 Small',
+        'file': 'yolov8s.pt',
+        'description': 'Balanced speed/accuracy. Better detection than nano.',
+        'optimized_for': 'balanced'
+    },
+    'yolov8m': {
+        'name': 'YOLOv8 Medium',
+        'file': 'yolov8m.pt',
+        'description': 'Higher accuracy. Slower than small.',
+        'optimized_for': 'accuracy'
+    },
+    'yolov8l': {
+        'name': 'YOLOv8 Large',
+        'file': 'yolov8l.pt',
+        'description': 'Best accuracy. Requires good GPU.',
+        'optimized_for': 'accuracy'
+    },
+    'yolov9c': {
+        'name': 'YOLOv9 Compact',
+        'file': 'yolov9c.pt',
+        'description': 'YOLOv9 architecture, improved accuracy.',
+        'optimized_for': 'balanced'
+    },
+    'yolov10n': {
+        'name': 'YOLOv10 Nano',
+        'file': 'yolov10n.pt',
+        'description': 'Latest YOLOv10, fastest version.',
+        'optimized_for': 'speed'
+    },
+    'yolov10s': {
+        'name': 'YOLOv10 Small',
+        'file': 'yolov10s.pt',
+        'description': 'YOLOv10 small, better than nano.',
+        'optimized_for': 'balanced'
+    },
+    'exdark': {
+        'name': 'EXDark (Low-Light Optimized)',
+        'file': None,  # Custom weights loaded from exdark folder
+        'description': 'Trained on EXDark dataset. Best for low-light/night.',
+        'optimized_for': 'low-light'
+    }
+}
+
 class YOLODetectorOSC:
     def __init__(self, 
                  osc_host: str = "0.0.0.0",
@@ -682,6 +734,56 @@ class YOLODetectorOSC:
         cv2.destroyAllWindows()
         # WebSocket cleanup handled by thread daemon status
     
+    def load_model(self, model_name: str, weights_path: Optional[str] = None):
+        """Load a new model dynamically"""
+        try:
+            print(f"\n{'='*60}")
+            print(f"Loading model: {model_name}")
+            if weights_path and os.path.exists(weights_path):
+                print(f"Using custom weights: {weights_path}")
+                self.model = YOLO(weights_path)
+                loaded_name = weights_path
+            else:
+                self.model = YOLO(model_name)
+                loaded_name = model_name
+            
+            # Move to correct device
+            if TORCH_AVAILABLE and hasattr(self, 'device'):
+                try:
+                    self.model.to(self.device)
+                except Exception:
+                    pass
+            
+            # Update class names
+            try:
+                self.class_names = getattr(self.model, 'names', {}) or {}
+            except Exception:
+                self.class_names = {}
+            
+            # Re-detect person class index
+            self.person_class_idx = None
+            try:
+                if isinstance(self.class_names, dict):
+                    for idx, name in self.class_names.items():
+                        if str(name).lower() in ('person', 'people'):
+                            self.person_class_idx = int(idx)
+                            break
+                else:
+                    for idx, name in enumerate(self.class_names):
+                        if str(name).lower() in ('person', 'people'):
+                            self.person_class_idx = int(idx)
+                            break
+            except Exception:
+                self.person_class_idx = None
+            
+            print(f"✓ Model loaded successfully: {loaded_name}")
+            print(f"{'='*60}\n")
+            return True
+        except Exception as e:
+            print(f"✗ Failed to load model: {e}")
+            print(f"{'='*60}\n")
+            return False
+    
     def get_cropped_image(self, image):
         """Get the cropped portion of the image"""
         return image[self.crop_y1:self.crop_y2, self.crop_x1:self.crop_x2]
@@ -741,6 +843,17 @@ class YOLODetectorOSC:
             "U / I - Increase / Decrease process_every_n_frames (skip more/less)",
             ", / . - Decrease / Increase confidence threshold",
             "P / O - Increase / Decrease smoothing alpha (less/more smoothing)",
+            "",
+            "Model Selection (Press 1-8):",
+            "1 - YOLOv8 Nano (fastest)",
+            "2 - YOLOv8 Small (balanced)",
+            "3 - YOLOv8 Medium (accurate)",
+            "4 - YOLOv8 Large (most accurate)",
+            "5 - YOLOv9 Compact",
+            "6 - YOLOv10 Nano",
+            "7 - YOLOv10 Small",
+            "8 - EXDark (low-light optimized)",
+            "",
             "SPACE - Pause / Resume",
             "Q / ESC - Quit"
         ]
@@ -995,6 +1108,54 @@ class YOLODetectorOSC:
                     # Increase confidence threshold
                     self.confidence_threshold = min(1.0, self.confidence_threshold + 0.05)
                     print(f"Confidence threshold: {self.confidence_threshold:.2f}")
+                elif key == ord('1'):
+                    # Load YOLOv8 Nano (fastest)
+                    if self.load_model(AVAILABLE_MODELS['yolov8n']['file']):
+                        self.frame_count = 0
+                elif key == ord('2'):
+                    # Load YOLOv8 Small
+                    if self.load_model(AVAILABLE_MODELS['yolov8s']['file']):
+                        self.frame_count = 0
+                elif key == ord('3'):
+                    # Load YOLOv8 Medium
+                    if self.load_model(AVAILABLE_MODELS['yolov8m']['file']):
+                        self.frame_count = 0
+                elif key == ord('4'):
+                    # Load YOLOv8 Large
+                    if self.load_model(AVAILABLE_MODELS['yolov8l']['file']):
+                        self.frame_count = 0
+                elif key == ord('5'):
+                    # Load YOLOv9 Compact
+                    if self.load_model(AVAILABLE_MODELS['yolov9c']['file']):
+                        self.frame_count = 0
+                elif key == ord('6'):
+                    # Load YOLOv10 Nano
+                    if self.load_model(AVAILABLE_MODELS['yolov10n']['file']):
+                        self.frame_count = 0
+                elif key == ord('7'):
+                    # Load YOLOv10 Small
+                    if self.load_model(AVAILABLE_MODELS['yolov10s']['file']):
+                        self.frame_count = 0
+                elif key == ord('8'):
+                    # Load EXDark (low-light optimized)
+                    exdark_dir = os.path.expanduser('./exdark')
+                    found = []
+                    if os.path.exists(exdark_dir):
+                        for root, dirs, files in os.walk(exdark_dir):
+                            for f in files:
+                                if f.endswith('.pt') and ('best' in f.lower() or 'last' in f.lower()):
+                                    found.append(os.path.join(root, f))
+                    if not found and os.path.exists(exdark_dir):
+                        for root, dirs, files in os.walk(exdark_dir):
+                            for f in files:
+                                if f.endswith('.pt'):
+                                    found.append(os.path.join(root, f))
+                    if found:
+                        found.sort(key=lambda p: (0 if 'best' in os.path.basename(p).lower() else 1, p))
+                        if self.load_model(found[0]):
+                            self.frame_count = 0
+                    else:
+                        print("✗ No EXDark weights found in ./exdark folder")
                     
         except KeyboardInterrupt:
             print("\nInterrupted by user")
@@ -1006,16 +1167,45 @@ def main():
     parser.add_argument('--osc-host', default='127.0.0.1', help='OSC host address')
     parser.add_argument('--osc-port', type=int, default=8025, help='OSC port')
     parser.add_argument('--camera', type=int, default=0, help='Camera device ID')
-    parser.add_argument('--model', default='yolov8n.pt', help='YOLO model name')
+    parser.add_argument('--model', default='yolov8n.pt', help='YOLO model name or key (e.g., yolov8s, yolov10n, exdark)')
     parser.add_argument('--confidence', type=float, default=0.5, help='Confidence threshold')
     parser.add_argument('--weights', default=None, help='Path to custom weights (.pt) to load')
     parser.add_argument('--use-exdark', action='store_true', help='Search local exdark folder for trained weights and use them')
     parser.add_argument('--exdark-path', default='./exdark', help='Path to local exdark repo/folder')
     parser.add_argument('--gpu', type=int, default=None, help='GPU device ID to use (e.g., 0, 1, 2). If not specified, uses default CUDA device.')
+    parser.add_argument('--list-models', action='store_true', help='List available models and exit')
     
     args = parser.parse_args()
+    
+    # If user wants to see available models
+    if args.list_models:
+        print("\n" + "="*70)
+        print("Available Models for Low-Light Person Detection")
+        print("="*70)
+        for key, config in AVAILABLE_MODELS.items():
+            print(f"\n{config['name']} ({key})")
+            print(f"  File: {config['file'] if config['file'] else 'Custom weights from exdark folder'}")
+            print(f"  Optimized for: {config['optimized_for']}")
+            print(f"  {config['description']}")
+        print("\n" + "="*70)
+        print("Usage: python pose_detector_yoloV8.py --model <key>")
+        print("Example: python pose_detector_yoloV8.py --model yolov8s")
+        print("Example: python pose_detector_yoloV8.py --use-exdark (for low-light)")
+        print("="*70 + "\n")
+        return 0
+    
     # Determine which weights to use (explicit weights override --use-exdark)
     weights_to_use = args.weights
+    model_name = args.model
+    
+    # Check if model argument is a key in AVAILABLE_MODELS
+    if model_name in AVAILABLE_MODELS and not weights_to_use:
+        model_config = AVAILABLE_MODELS[model_name]
+        if model_config['file']:
+            model_name = model_config['file']
+        print(f"\n✓ Using model preset: {model_config['name']}")
+        print(f"  Optimized for: {model_config['optimized_for']}")
+    
     if args.use_exdark and not weights_to_use:
         # search the exdark path for likely weights (best.pt, last.pt)
         exdark_dir = os.path.expanduser(args.exdark_path)
@@ -1036,7 +1226,7 @@ def main():
             # prefer best.pt over last.pt
             found.sort(key=lambda p: (0 if 'best' in os.path.basename(p).lower() else 1, p))
             weights_to_use = found[0]
-            print(f"Using EXDark weights found at: {weights_to_use}")
+            print(f"✓ Using EXDark weights (low-light optimized) found at: {weights_to_use}")
         else:
             print(f"No .pt weights found under {exdark_dir}; falling back to default model")
 
@@ -1045,7 +1235,7 @@ def main():
             osc_host=args.osc_host,
             osc_port=args.osc_port,
             camera_id=args.camera,
-            model_name=args.model,
+            model_name=model_name,
             weights_path=weights_to_use,
             confidence_threshold=args.confidence,
             gpu_id=args.gpu
