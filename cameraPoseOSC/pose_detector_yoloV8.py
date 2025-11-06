@@ -667,15 +667,12 @@ class YOLODetectorOSC:
     def draw_ui(self, image):
         """Draw UI elements on the image"""
         height, width = image.shape[:2]
-        
-        # Calculate font scale based on camera resolution (for cross-platform consistency)
-        font_scale = max(0.3, (self.camera_width / 1920.0))
 
         # Draw crop rectangle if in crop mode
         if self.show_crop_interface:
             cv2.rectangle(image, (self.crop_x1, self.crop_y1), (self.crop_x2, self.crop_y2), (0, 255, 0), 2)
             cv2.putText(image, "CROP MODE - Click and drag to set crop area",
-                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.7, (0, 255, 0), 2)
+                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         else:
             cv2.rectangle(image, (self.crop_x1, self.crop_y1), (self.crop_x2, self.crop_y2), (255, 255, 0), 2)
 
@@ -687,25 +684,25 @@ class YOLODetectorOSC:
         except Exception:
             model_display = 'yolov8n'
         cv2.putText(image, f"Model: {model_display}", (10, status_y),
-                    cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.6, (255, 255, 0), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
         cv2.putText(image, f"FPS: {self.current_fps}", (10, status_y + 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.6, (255, 255, 0), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
         cv2.putText(image, f"OSC: /depth -> {self.osc_host}:{self.osc_port}", (10, status_y + 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.5, (255, 255, 0), 1)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
         cv2.putText(image, f"Crop: ({self.crop_x1},{self.crop_y1}) to ({self.crop_x2},{self.crop_y2})",
-                    (10, status_y + 60), cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.5, (255, 255, 0), 1)
+                    (10, status_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
 
         # Editable parameter values (live)
         params_y = status_y + 85
         cv2.putText(image, f"confidence: {self.confidence_threshold:.2f}    inference_size: {self.inference_size}    process_every_n_frames: {self.process_every_n_frames}",
-                    (10, params_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.5, (200, 200, 0), 1)
+                    (10, params_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 0), 1)
         cv2.putText(image, f"gain: {self.gain:.2f}    auto_gain: {int(self.auto_gain)}    accumulation: {int(self.enable_accumulation)}    show_enhanced: {int(self.show_enhanced)}    show_detections: {int(self.show_detections)}",
-                    (10, params_y + 18), cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.5, (200, 200, 0), 1)
+                    (10, params_y + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 0), 1)
         # Show smoothing alpha and whether enhancement is applied to inference
-        cv2.putText(image, f"smoothing_alpha: {self.smoothing_alpha:.3f}    apply_enhancement_to_inference: {int(self.apply_enhancement_to_inference)}", (10, params_y + 36), cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.5, (200, 200, 0), 1)
+        cv2.putText(image, f"smoothing_alpha: {self.smoothing_alpha:.3f}    apply_enhancement_to_inference: {int(self.apply_enhancement_to_inference)}", (10, params_y + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 0), 1)
         # Show paused state
-        cv2.putText(image, f"paused: {int(self.paused)}", (10, params_y + 54), cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.5, (200,200,0), 1)
-        cv2.putText(image, f"bg_subtract: {int(self.use_bg_subtraction)}  bg_lr: {self.bg_subtract_learning_rate}", (10, params_y + 72), cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.5, (200,200,0), 1)
+        cv2.putText(image, f"paused: {int(self.paused)}", (10, params_y + 54), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200,200,0), 1)
+        cv2.putText(image, f"bg_subtract: {int(self.use_bg_subtraction)}  bg_lr: {self.bg_subtract_learning_rate}", (10, params_y + 72), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200,200,0), 1)
 
         # Draw controls
         controls = [
@@ -728,7 +725,7 @@ class YOLODetectorOSC:
 
         for i, control in enumerate(controls):
             cv2.putText(image, control, (width - 700, 30 + i * 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.6, (255, 255, 0), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
    
     
     def scale_font_size(self, base_size: float) -> float:
