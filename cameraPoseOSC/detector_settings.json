@@ -1,7 +1,7 @@
 {
-  "crop_x1": 70,
-  "crop_y1": 21,
-  "crop_x2": 1229,
-  "crop_y2": 623,
+  "crop_x1": 85,
+  "crop_y1": 52,
+  "crop_x2": 1176,
+  "crop_y2": 665,
   "detection_hold_frames": 2
 }
