@@ -46,6 +46,7 @@ start chrome --kiosk http://localhost:8081 ^
   --disable-infobars ^
   --disable-restore-session-state ^
   --no-default-browser-check ^
+  --disable-blink-features=AutomationControlled ^
   --disk-cache-dir=nul
 
 echo changing to exhibition directory
