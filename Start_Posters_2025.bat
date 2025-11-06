@@ -23,7 +23,7 @@ CMD /C npx kill-port --port 8081
 
 TIMEOUT /t 2
 echo starting Chrome in kiosk mode
-start chrome --kiosk http://localhost:8081 ^
+start chrome --start-fullscreen http://localhost:8081 ^
   --no-first-run ^
   --no-default-browser-check ^
   --no-pings ^
