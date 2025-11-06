@@ -64,7 +64,3 @@ build/
 *.bak
 *.swp
 *.tmp
-
-
-# don't override git pull bash script remote PC
-.Force_Git_Pull.bat
