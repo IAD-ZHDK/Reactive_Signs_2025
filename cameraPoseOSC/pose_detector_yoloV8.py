@@ -315,18 +315,36 @@ class YOLODetectorOSC:
         # Smoothed average point for stable output (normalized x,y,z)
         self.smoothed_point = None
         self.smoothing_alpha = 0.2  # base smoothing factor (0-1)
+        
+        # Detection hold: keep showing last known point if detection is lost for a few frames
+        self.last_valid_point = None  # Last detected point
+        self.frames_without_detection = 0  # Counter for frames without detection
+        self.detection_hold_frames = 2  # Number of frames to hold last point (configurable, default=2)
 
     def update_smoothed_point(self, detected_point: Optional[Tuple[float, float, float]], tracking: bool) -> Tuple[float, float, float]:
         """Update and return smoothed normalized (x,y,z).
 
-        - If detected_point is None, target becomes center of crop (0.5, 0.5) for x,y and 0 for z.
+        - If detected_point is not None, save it as last_valid_point and reset hold counter
+        - If detection is lost, hold the last valid point for N frames (configurable)
+        - After hold frames expire, target becomes center of crop (0.5, 0.5) for x,y and 0 for z
         - Uses exponential moving average with alpha self.smoothing_alpha.
         """
-        # Target when no detection: center
-        if detected_point is None:
-            target = (0.5, 0.5, 0.0)
-        else:
+        # If we have a detection, save it and reset hold counter
+        if detected_point is not None:
+            self.last_valid_point = detected_point
+            self.frames_without_detection = 0
             target = detected_point
+        else:
+            # No detection - increment counter
+            self.frames_without_detection += 1
+            
+            # Check if we should still hold the last valid point
+            if self.last_valid_point is not None and self.frames_without_detection <= self.detection_hold_frames:
+                # Hold the last valid point (don't move to center yet)
+                target = self.last_valid_point
+            else:
+                # Hold time expired or no previous detection - target center
+                target = (0.5, 0.5, 0.0)
 
         if self.smoothed_point is None:
             # initialize directly
@@ -569,6 +587,7 @@ class YOLODetectorOSC:
                     self.crop_y1 = settings.get('crop_y1', self.crop_y1)
                     self.crop_x2 = settings.get('crop_x2', self.crop_x2)
                     self.crop_y2 = settings.get('crop_y2', self.crop_y2)
+                    self.detection_hold_frames = settings.get('detection_hold_frames', self.detection_hold_frames)
                     print("Settings loaded from file")
             except Exception as e:
                 print(f"Could not load settings: {e}")
@@ -579,7 +598,8 @@ class YOLODetectorOSC:
             'crop_x1': self.crop_x1,
             'crop_y1': self.crop_y1,
             'crop_x2': self.crop_x2,
-            'crop_y2': self.crop_y2
+            'crop_y2': self.crop_y2,
+            'detection_hold_frames': self.detection_hold_frames
         }
         try:
             with open(self.settings_file, 'w') as f:
@@ -817,7 +837,7 @@ class YOLODetectorOSC:
         return image[self.crop_y1:self.crop_y2, self.crop_x1:self.crop_x2]
     
     def draw_ui(self, image):
-        """Draw UI elements on the image"""
+        """Draw minimal UI elements on the main video image (crop interface only)"""
         height, width = image.shape[:2]
 
         # Draw crop rectangle if in crop mode
@@ -836,66 +856,92 @@ class YOLODetectorOSC:
         else:
             cv2.rectangle(image, (self.crop_x1, self.crop_y1), (self.crop_x2, self.crop_y2), (255, 255, 0), 2)
 
-        # Draw status information
-        status_y = 50
+    def create_controls_image(self):
+        """Create a controls reference image to display in separate window"""
+        width, height = 900, 1000
+        controls_image = np.zeros((height, width, 3), dtype=np.uint8)
+        
         # Display the currently loaded model name
         model_display = getattr(self, 'current_model_name', 'yolov8n')
-        self.draw_text_with_outline(image, f"Model: {model_display}", (10, status_y),
-                    self.font, self.font_size_main, (255, 255, 0), self.font_thickness_bold)
-        self.draw_text_with_outline(image, f"FPS: {self.current_fps}", (10, status_y + 20),
-                    self.font, self.font_size_main, (255, 255, 0), self.font_thickness_bold)
-        self.draw_text_with_outline(image, f"OSC: /depth -> {self.osc_host}:{self.osc_port}", (10, status_y + 40),
-                    self.font, self.font_size_detail, (255, 255, 0), self.font_thickness_normal)
-        self.draw_text_with_outline(image, f"Crop: ({self.crop_x1},{self.crop_y1}) to ({self.crop_x2},{self.crop_y2})",
-                    (10, status_y + 60), self.font, self.font_size_detail, (255, 255, 0), self.font_thickness_normal)
-
-        # Editable parameter values (live)
-        params_y = status_y + 85
-        self.draw_text_with_outline(image, f"confidence: {self.confidence_threshold:.2f}    inference_size: {self.inference_size}    process_every_n_frames: {self.process_every_n_frames}",
-                    (10, params_y), self.font, self.font_size_detail, (200, 200, 0), self.font_thickness_normal)
-        self.draw_text_with_outline(image, f"gain: {self.gain:.2f}    auto_gain: {int(self.auto_gain)}    accumulation: {int(self.enable_accumulation)}    show_enhanced: {int(self.show_enhanced)}    show_detections: {int(self.show_detections)}",
-                    (10, params_y + 18), self.font, self.font_size_detail, (200, 200, 0), self.font_thickness_normal)
-        # Show smoothing alpha and whether enhancement is applied to inference
-        self.draw_text_with_outline(image, f"smoothing_alpha: {self.smoothing_alpha:.3f}    apply_enhancement_to_inference: {int(self.apply_enhancement_to_inference)}", (10, params_y + 36), self.font, self.font_size_detail, (200, 200, 0), self.font_thickness_normal)
-        # Show paused state
-        self.draw_text_with_outline(image, f"paused: {int(self.paused)}", (10, params_y + 54), self.font, self.font_size_detail, (200,200,0), self.font_thickness_normal)
-        self.draw_text_with_outline(image, f"bg_subtract: {int(self.use_bg_subtraction)}  bg_lr: {self.bg_subtract_learning_rate}", (10, params_y + 72), self.font, self.font_size_detail, (200,200,0), self.font_thickness_normal)
-
-        # Draw controls
+        
+        # Build the controls text
         controls = [
-            "Controls:",
-            "C - Toggle crop interface",
-            "   (then click 2 times: upper-left, lower-right)",
-            "D - Toggle detections overlay",
-            "R - Reset crop area",
-            "S - Save settings",
-            "E - Toggle display enhancement (CLAHE/gain)",
-            "M - Toggle apply enhancement to inference (slower)",
-            "A - Toggle frame accumulation (temporal)",
-            "G - Toggle auto gain",
-            "+ / - - Increase / Decrease manual gain",
-            "U / I - Increase / Decrease process_every_n_frames (skip more/less)",
-            ", / . - Decrease / Increase confidence threshold",
-            "P / O - Increase / Decrease smoothing alpha (less/more smoothing)",
+            "=== CONTROLS & PARAMETERS ===",
             "",
-            "Model Selection (Press 1-9, or use --model flag):",
-            "1 - YOLOv8 Nano (fastest)",
-            "2 - YOLOv8 Small (balanced)",
-            "3 - YOLOv8 Medium (accurate)",
-            "4 - YOLOv8 Large (most accurate)",
-            "5 - YOLOv9 Compact",
-            "6 - YOLOv10 Nano",
-            "7 - YOLOv10 Small",
-            "8 - EXDark (low-light optimized)",
-            "9 - RT-DETR (real-time detection)",
+            "DISPLAY:",
+            f"  Model: {model_display} | FPS: {self.current_fps}",
+            f"  OSC: /depth -> {self.osc_host}:{self.osc_port}",
+            f"  Crop: ({self.crop_x1},{self.crop_y1}) to ({self.crop_x2},{self.crop_y2})",
             "",
-            "SPACE - Pause / Resume",
-            "Q / ESC - Quit"
+            "CURRENT PARAMETERS:",
+            f"  confidence: {self.confidence_threshold:.2f}  |  inference_size: {self.inference_size}",
+            f"  process_every_n_frames: {self.process_every_n_frames}  |  paused: {int(self.paused)}",
+            f"  gain: {self.gain:.2f}  |  auto_gain: {int(self.auto_gain)}",
+            f"  smoothing_alpha: {self.smoothing_alpha:.3f}  |  detection_hold_frames: {self.detection_hold_frames}",
+            f"  frame_accumulation: {int(self.enable_accumulation)}  |  bg_subtract: {int(self.use_bg_subtraction)}",
+            f"  show_enhanced: {int(self.show_enhanced)}  |  apply_enhancement_to_inference: {int(self.apply_enhancement_to_inference)}",
+            "",
+            "=== KEYBOARD SHORTCUTS ===",
+            "",
+            "INTERFACE:",
+            "  C - Toggle crop interface (then click 2 points: upper-left, lower-right)",
+            "  D - Toggle detections overlay",
+            "  R - Reset crop area",
+            "  S - Save settings",
+            "  SPACE - Pause / Resume",
+            "  Q / ESC - Quit",
+            "",
+            "IMAGE PROCESSING:",
+            "  E - Toggle display enhancement (CLAHE/gain)",
+            "  M - Toggle apply enhancement to inference (slower)",
+            "  A - Toggle frame accumulation (temporal smoothing)",
+            "  G - Toggle auto gain",
+            "  + / - - Increase / Decrease manual gain",
+            "  B - Toggle background subtraction",
+            "  V / W - Adjust background subtraction learning rate",
+            "",
+            "DETECTION:",
+            "  U / I - Decrease / Increase process_every_n_frames (optimize speed)",
+            "  , / . - Decrease / Increase confidence threshold",
+            "",
+            "SMOOTHING & FLICKER:",
+            "  P / O - Increase / Decrease smoothing alpha (less/more smoothing)",
+            "  [ / ] - Decrease / Increase detection hold frames (anti-flicker buffer)",
+            "  Note: Anti-flicker works best when using reduced processing frequency (U key)",
+            "",
+            "MODEL SELECTION (Press 1-9):",
+            "  1 - YOLOv8 Nano (fastest)",
+            "  2 - YOLOv8 Small (balanced)",
+            "  3 - YOLOv8 Medium (accurate)",
+            "  4 - YOLOv8 Large (most accurate)",
+            "  5 - YOLOv9 Compact",
+            "  6 - YOLOv10 Nano",
+            "  7 - YOLOv10 Small",
+            "  8 - EXDark (low-light optimized)",
+            "  9 - RT-DETR (real-time detection)",
         ]
-
-        for i, control in enumerate(controls):
-            self.draw_text_with_outline(image, control, (width - 700, 30 + i * 20),
-                        self.font, self.font_size_detail, (255, 255, 0), self.font_thickness_normal)
+        
+        y_offset = 25
+        for line in controls:
+            if line.startswith("==="):
+                # Section headers in bright cyan
+                self.draw_text_with_outline(controls_image, line, (15, y_offset),
+                            self.font, self.font_size_main, (255, 255, 0), self.font_thickness_bold)
+            elif line.startswith("  "):
+                # Indented content in yellow
+                self.draw_text_with_outline(controls_image, line, (15, y_offset),
+                            self.font, self.font_size_detail, (200, 255, 0), self.font_thickness_normal)
+            elif line == "":
+                # Empty line for spacing
+                pass
+            else:
+                # Category headers in white
+                self.draw_text_with_outline(controls_image, line, (15, y_offset),
+                            self.font, self.font_size_main, (255, 255, 255), self.font_thickness_bold)
+            
+            y_offset += 22
+        
+        return controls_image
    
     
     def scale_font_size(self, base_size: float) -> float:
@@ -920,6 +966,8 @@ class YOLODetectorOSC:
         print("Controls: C=crop toggle, D=detections toggle, R=reset crop, S=save, E=enhancement toggle, SPACE=pause, Q=quit")
         
         window_name = 'YOLO Person Detection OSC'
+        controls_window_name = 'Controls & Shortcuts'
+        
         try:
             cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         except:
@@ -929,6 +977,13 @@ class YOLODetectorOSC:
         display_width = 1280
         display_height = 720
         cv2.resizeWindow(window_name, display_width, display_height)
+
+        # Create controls window
+        try:
+            cv2.namedWindow(controls_window_name, cv2.WINDOW_NORMAL)
+        except:
+            cv2.namedWindow(controls_window_name)
+        cv2.resizeWindow(controls_window_name, 900, 800)
 
         cv2.setMouseCallback(window_name, self.mouse_callback)
         
@@ -1048,6 +1103,11 @@ class YOLODetectorOSC:
                 self.draw_ui(display_frame)
                 self.update_fps()
                 cv2.imshow(window_name, display_frame)
+                
+                # Create and display controls window
+                controls_image = self.create_controls_image()
+                cv2.imshow(controls_window_name, controls_image)
+                
                 draw_t1 = time.time()
                 draw_time = draw_t1 - draw_t0
                 self.timing['draw'] += draw_time
@@ -1115,12 +1175,20 @@ class YOLODetectorOSC:
                     self.gain = max(self.gain - 0.1, 0.5)
                 elif key == ord('p'):
                     # Increase smoothing alpha (less smoothing)
-                    self.smoothing_alpha = min(0.95, self.smoothing_alpha + 0.05)
+                    self.smoothing_alpha = min(0.95, self.smoothing_alpha + 0.02)
                     print(f"Smoothing alpha: {self.smoothing_alpha:.3f}")
                 elif key == ord('o'):
                     # Decrease smoothing alpha (more smoothing)
-                    self.smoothing_alpha = max(0.01, self.smoothing_alpha - 0.05)
+                    self.smoothing_alpha = max(0.01, self.smoothing_alpha - 0.02)
                     print(f"Smoothing alpha: {self.smoothing_alpha:.3f}")
+                elif key == ord('['):
+                    # Decrease detection hold frames (less flickering buffer)
+                    self.detection_hold_frames = max(0, self.detection_hold_frames - 1)
+                    print(f"Detection hold frames: {self.detection_hold_frames}")
+                elif key == ord(']'):
+                    # Increase detection hold frames (more flickering buffer)
+                    self.detection_hold_frames = min(10, self.detection_hold_frames + 1)
+                    print(f"Detection hold frames: {self.detection_hold_frames}")
                 elif key == ord('m'):
                     # Toggle applying enhancement to inference frame
                     self.apply_enhancement_to_inference = not self.apply_enhancement_to_inference

@@ -40,7 +40,11 @@ M = Toggle enhancement applied to inference (slower but better)
 . = Increase confidence threshold (fewer, confident detections)
 P = Increase smoothing alpha (less smoothing)
 O = Decrease smoothing alpha (more smoothing)
+[ = Decrease detection hold frames (less flicker buffer)
+] = Increase detection hold frames (more flicker buffer)
 ```
+
+**Anti-Flicker Feature**: Keeps showing the last detected point for N frames if detection is lost temporarily. This prevents jittering when a person briefly disappears. Works great when `U` reduces processing frequency - even if you only process every 2nd frame, the anti-flicker keeps smooth output!
 
 ## 🎬 Playback Control
 ```
@@ -100,8 +104,10 @@ ESC = Quit application
 ### Processing Control (U, I)
 | Key | Purpose |
 |-----|---------|
-| U | Skip more frames (faster but less frequent) |
-| I | Process more frames (slower but more frequent) |
+| U | Skip more frames (faster but less frequent detection runs) |
+| I | Process more frames (slower but more frequent detection runs) |
+
+**Note**: When reducing frequency with `U`, the anti-flicker feature (detection_hold_frames) keeps the tracking smooth even if detection only runs every 2-3 frames!
 
 ### Crop & Display (C, D, R, S)
 | Key | Purpose |
@@ -163,7 +169,17 @@ ESC = Quit application
 2. If too slow, press 1 (nano)
 3. If need better accuracy, press 3 (medium)
 4. Adjust processing frequency with U/I
-5. Fine-tune confidence with ,/.
+5. Adjust anti-flicker with [ or ] to keep tracking smooth
+6. Fine-tune confidence with ,/.
+```
+
+### Speed Optimization with Anti-Flicker
+```
+1. Start: python pose_detector_yoloV8.py
+2. Press: U, U (process every 3rd frame for speed)
+3. Watch FPS increase significantly
+4. Press: ] (increase detection hold frames)
+5. Tracking stays smooth despite low processing frequency!
 ```
 
 ---
