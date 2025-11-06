@@ -291,6 +291,7 @@ class YOLODetectorOSC:
         self.paused = False
         self.crop_click_count = 0  # For two-click crop mode (0, 1, or 2)
         self.current_model_name = model_name  # Track the displayed model name
+        self.selected_model_key = 'yolov8n'  # Track which model is selected (for persistence)
         
         # Performance tracking
         self.fps_counter = 0
@@ -588,6 +589,13 @@ class YOLODetectorOSC:
                     self.crop_x2 = settings.get('crop_x2', self.crop_x2)
                     self.crop_y2 = settings.get('crop_y2', self.crop_y2)
                     self.detection_hold_frames = settings.get('detection_hold_frames', self.detection_hold_frames)
+                    
+                    # Load model selection if saved
+                    saved_model = settings.get('current_model', None)
+                    if saved_model and saved_model in AVAILABLE_MODELS:
+                        self.selected_model_key = saved_model
+                        print(f"Restoring saved model: {saved_model}")
+                    
                     print("Settings loaded from file")
             except Exception as e:
                 print(f"Could not load settings: {e}")
@@ -599,7 +607,8 @@ class YOLODetectorOSC:
             'crop_y1': self.crop_y1,
             'crop_x2': self.crop_x2,
             'crop_y2': self.crop_y2,
-            'detection_hold_frames': self.detection_hold_frames
+            'detection_hold_frames': self.detection_hold_frames,
+            'current_model': getattr(self, 'selected_model_key', 'yolov8n')
         }
         try:
             with open(self.settings_file, 'w') as f:
@@ -1210,54 +1219,47 @@ class YOLODetectorOSC:
                 elif key == ord('1'):
                     # Load YOLOv8 Nano (fastest)
                     if self.load_model(AVAILABLE_MODELS['yolov8n']['file']):
+                        self.selected_model_key = 'yolov8n'
                         self.frame_count = 0
                 elif key == ord('2'):
                     # Load YOLOv8 Small
                     if self.load_model(AVAILABLE_MODELS['yolov8s']['file']):
+                        self.selected_model_key = 'yolov8s'
                         self.frame_count = 0
                 elif key == ord('3'):
                     # Load YOLOv8 Medium
                     if self.load_model(AVAILABLE_MODELS['yolov8m']['file']):
+                        self.selected_model_key = 'yolov8m'
                         self.frame_count = 0
                 elif key == ord('4'):
                     # Load YOLOv8 Large
                     if self.load_model(AVAILABLE_MODELS['yolov8l']['file']):
+                        self.selected_model_key = 'yolov8l'
                         self.frame_count = 0
                 elif key == ord('5'):
                     # Load YOLOv9 Compact
                     if self.load_model(AVAILABLE_MODELS['yolov9c']['file']):
+                        self.selected_model_key = 'yolov9c'
                         self.frame_count = 0
                 elif key == ord('6'):
                     # Load YOLOv10 Nano
                     if self.load_model(AVAILABLE_MODELS['yolov10n']['file']):
+                        self.selected_model_key = 'yolov10n'
                         self.frame_count = 0
                 elif key == ord('7'):
                     # Load YOLOv10 Small
                     if self.load_model(AVAILABLE_MODELS['yolov10s']['file']):
+                        self.selected_model_key = 'yolov10s'
                         self.frame_count = 0
                 elif key == ord('8'):
                     # Load EXDark (low-light optimized)
-                    exdark_dir = os.path.expanduser('./exdark')
-                    found = []
-                    if os.path.exists(exdark_dir):
-                        for root, dirs, files in os.walk(exdark_dir):
-                            for f in files:
-                                if f.endswith('.pt') and ('best' in f.lower() or 'last' in f.lower()):
-                                    found.append(os.path.join(root, f))
-                    if not found and os.path.exists(exdark_dir):
-                        for root, dirs, files in os.walk(exdark_dir):
-                            for f in files:
-                                if f.endswith('.pt'):
-                                    found.append(os.path.join(root, f))
-                    if found:
-                        found.sort(key=lambda p: (0 if 'best' in os.path.basename(p).lower() else 1, p))
-                        if self.load_model(found[0]):
-                            self.frame_count = 0
-                    else:
-                        print("✗ No EXDark weights found in ./exdark folder")
+                    if self.load_model(AVAILABLE_MODELS['exdark']['file']):
+                        self.selected_model_key = 'exdark'
+                        self.frame_count = 0
                 elif key == ord('9'):
-                    # Load RT-DETR Large (real-time detection)
-                    if self.load_model(AVAILABLE_MODELS['rtdetr-l']['file']):
+                    # Load RT-DETR
+                    if self.load_model(AVAILABLE_MODELS['rtdetr-x']['file']):
+                        self.selected_model_key = 'rtdetr-x'
                         self.frame_count = 0
                     
         except KeyboardInterrupt:
