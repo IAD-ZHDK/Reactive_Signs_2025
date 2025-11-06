@@ -44,7 +44,6 @@ start chrome --start-fullscreen http://localhost:8081 ^
   --disable-session-crashed-bubble ^
   --disable-infobars ^
   --disable-restore-session-state ^
-  --disable-blink-features=AutomationControlled ^
   --disk-cache-dir=nul
 
 echo changing to exhibition directory
