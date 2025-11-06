@@ -867,7 +867,7 @@ class YOLODetectorOSC:
 
     def create_controls_image(self):
         """Create a controls reference image to display in separate window"""
-        width, height = 900, 1000
+        width, height = 1200, 1400  # Increased size to show all content
         controls_image = np.zeros((height, width, 3), dtype=np.uint8)
         
         # Display the currently loaded model name
@@ -930,25 +930,25 @@ class YOLODetectorOSC:
             "  9 - RT-DETR (real-time detection)",
         ]
         
-        y_offset = 25
+        y_offset = 30
         for line in controls:
             if line.startswith("==="):
                 # Section headers in bright cyan
-                self.draw_text_with_outline(controls_image, line, (15, y_offset),
+                self.draw_text_with_outline(controls_image, line, (20, y_offset),
                             self.font, self.font_size_main, (255, 255, 0), self.font_thickness_bold)
             elif line.startswith("  "):
                 # Indented content in yellow
-                self.draw_text_with_outline(controls_image, line, (15, y_offset),
+                self.draw_text_with_outline(controls_image, line, (20, y_offset),
                             self.font, self.font_size_detail, (200, 255, 0), self.font_thickness_normal)
             elif line == "":
                 # Empty line for spacing
                 pass
             else:
                 # Category headers in white
-                self.draw_text_with_outline(controls_image, line, (15, y_offset),
+                self.draw_text_with_outline(controls_image, line, (20, y_offset),
                             self.font, self.font_size_main, (255, 255, 255), self.font_thickness_bold)
             
-            y_offset += 22
+            y_offset += 24
         
         return controls_image
    
@@ -992,7 +992,7 @@ class YOLODetectorOSC:
             cv2.namedWindow(controls_window_name, cv2.WINDOW_NORMAL)
         except:
             cv2.namedWindow(controls_window_name)
-        cv2.resizeWindow(controls_window_name, 900, 800)
+        cv2.resizeWindow(controls_window_name, 1200, 1400)
 
         cv2.setMouseCallback(window_name, self.mouse_callback)
         
