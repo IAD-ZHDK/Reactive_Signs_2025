@@ -190,7 +190,7 @@ function preload() {
 }
 
 function setup() {
-  /*important!*/ createCanvas(100,100); // Don't remove this line. 
+  /*important!*/ createCanvas(100, 100); // Don't remove this line. 
   textFont(Microgramma);
   imageMode(CENTER)
   textAlign(CENTER)
@@ -263,11 +263,11 @@ function draw() {
   if (pastNumber < poster.getCounter()) { // this condition could be fixed to wrap corectly from 9 to 0 and 0 to 9
     // counting up (going left)
     direction = -95 * poster.vw
-    console.log("counting up,left")
+    //console.log("counting up,left")
   } else {
     // counting down (going right)
     direction = 95 * poster.vw
-    console.log("counting down,right")
+    //console.log("counting down,right")
   }
 
   if (movingFlag == false && pastNumber != poster.getCounter()) {

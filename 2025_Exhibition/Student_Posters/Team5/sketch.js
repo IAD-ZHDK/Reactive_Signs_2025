@@ -10,12 +10,18 @@ let triangleList = [] // this stores the actual TesoTriangle objects
 let isBlackTriangles = [];
 let counter = 0;
 
+let font;
+function preload() {
+	// load the font
+	font = loadFont('barlow_condensed.otf');
+}
+
 function setup() {
 
  /*important!*/ createCanvas(100, 100); // Don't remove this line.
 	//createCanvas(1050 / 2, 1920 / 2);
 	background(100);
-
+	textFont(font);
 	for (let i = 0; i < gridCountX; i++) {
 		for (let j = 0; j < gridCountY; j++) {
 
@@ -30,11 +36,12 @@ function setup() {
 
 
 function draw() {
+	push();
+	//translate(-width / 2, -height / 2); // WEBGL center correction
 	background(255)
 
 	counter++
 	if (counter == 10) {
-		console.log(random10)
 		console.log(nameArray)
 	}
 
@@ -48,13 +55,14 @@ function draw() {
 		}
 
 	}
+	pop();
 }
 
 function windowResized() { // this is a custom event called whenever the poster is scaled
 	//console.log("triangleList"+triangleList.length)
 	for (let i = 0; i < triangleList.length; i++) {
 		triangleList[i].updatePositions();
-		console.log("count" + i)
+		//console.log("count" + i)
 	}
 }
 
@@ -68,7 +76,7 @@ class TesoTriangle {
 		this.w = width / gridCountX; // width and height -> dependant on canvas size
 		this.h = height / gridCountY;
 
-		this.x = i * this.w; // top left corver coordinates of triangle
+		this.x = i * this.w; // top left corner coordinates of triangle
 		this.y = j * this.h;
 
 		this.active = false; // boolean to determine color
@@ -91,25 +99,7 @@ class TesoTriangle {
 		this.y = this.j * this.h;
 
 	}
-
-	getRandomElements(arr, num) {
-		var randomElements = [];
-		let copyArr = [...arr]; // Create a copy of the array to avoid modifying the original array
-
-		for (let i = 0; i < num; i++) {
-			// Get a random index
-			let randomIndex = Math.floor(Math.random() * copyArr.length);
-
-			// Push the random element (subarray) into the result array
-			randomElements.push(copyArr[randomIndex]);
-
-			// Remove the selected element from the copyArr to avoid duplicates
-			copyArr.splice(randomIndex, 1);
-		}
-		return randomElements;
-	}
 	// NEW CODE END
-
 
 	showTriangle() {
 
@@ -184,131 +174,74 @@ class TesoTriangle {
 			let p2 = createVector(this.w, 0 - (this.h / 2));
 			let p3 = createVector(this.w, this.h + (this.h / 2));
 
-			let m = (p2.y - p1.y) / (p2.x - p1.x);
-			let parallelStart = createVector(p1.x + slider, p1.y + slider);
-			let deltaX = this.w + 100;
-			let deltaY = m * deltaX;
-			let parallelEnd = createVector(parallelStart.x + deltaX, parallelStart.y + deltaY);
-
-			triangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
-
-			canvas.getContext("2d").clip();
-
 			if (this.isBlack && this.showLines) { // Only show lines if both conditions are true
-				for (let j = 0; j < 10; j++) {
-					push();
-					if (j % 2 == 0 && j < 5) { fill(0); } else { fill(255); }
-					this.drawRectis(parallelStart.x + j * offset, parallelStart.y + j * offset,
-						parallelEnd.x + j * offset, parallelEnd.y + j * offset);
-					pop();
-				}
+				beginClip({ invert: false });
+				this.mask(p1, p2, p3, poster.posNormal.x);
+				endClip();
+				triangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+				//this.mask(p1, p2, p3, poster.posNormal.x)
+			} else {
+
+				triangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
 			}
+
+
 		} else {
 			let isWhite = currentDigits.some(item => item[0] === this.i && item[1] === this.j);
 			// Update target scale based on visibility
 			this.targetScale = isWhite ? 1 : 0;
-
 			// Animate scale
 			this.scale = lerp(this.scale, this.targetScale, this.animationSpeed);
-
 			// Apply scale transformation
 			translate(this.w / 2, this.h / 2);
 			scale(this.scale);
 			translate(-this.w / 2, -this.h / 2);
-
-			if (isWhite) {
-				fill(0);
-			} else {
-				fill(255);
-			}
-
-
-
-			random10 = this.getRandomElements(isBlackTriangles, 20);
-
-
-
-			// work out the orientation of the triangle based on column and row. 
-			// checks if odd or even
-			let invert = this.i % 2
-			invert -= this.j % 2
-
-
-			let slider = map(poster.posNormal.x, 0, 1, -20, 20)
 			// draw
-			if (invert) {
-
-				let p1 = createVector(0, this.h / 2);
-				let p2 = createVector(this.w, 0 - (this.h / 2))
-				let p3 = createVector(this.w, this.h + (this.h / 2))
-
-				let m = (p2.y - p1.y) / (p2.x - p1.x)
-
-				let parallelStart = createVector(p1.x + slider, p1.y + slider);
-
-				let deltaX = this.w + 100
-				let deltaY = m * deltaX
-				let parallelEnd = createVector(parallelStart.x + deltaX, parallelStart.y + deltaY)
-
-				let rectWidth = (parallelEnd.x - parallelStart.x) / 2;
-				let rectHeight = (parallelEnd.y - parallelStart.y) / 2;
-
-
-				triangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y)
-
-
-				canvas.getContext("2d").clip()
-
-
-				if (isWhite) {
-					for (let j = 0; j < 10; j++) {
-						push()
-						if (j % 2 == 0 && j < 5) { fill(0) } else { fill(255) }
-
-						// this.drawRectis(parallelStart.x - j * rectWidth, parallelStart.y + j * rectHeight, parallelEnd.x - j * rectWidth, parallelEnd.y + j * rectHeight);
-						this.drawRectis(parallelStart.x + j * offset, parallelStart.y + j * offset, parallelEnd.x + j * offset, parallelEnd.y + j * offset);
-						pop()
-					}
-
-				}
-
-			}
-
-			else {
-				let p4 = createVector(0, 0 - (this.h / 2))
-				let p5 = createVector(this.w, this.h / 2)
-				let p6 = createVector(0, this.h + (this.h / 2))
-
-				let m = -(p5.y - p4.y) / (p5.x - p4.x)
-				let parallelStart = createVector(p4.x - 20, p4.y);
-
-				let deltaX = 200
-				let deltaY = m * deltaX
-				let parallelEnd = createVector(parallelStart.x + deltaX, parallelStart.y + deltaY)
-				//	console.log('start x' + parallelStart.x + 'start y' + parallelStart.y)
-				//	console.log('end x' + parallelEnd.x + 'end y' + parallelEnd.y)
-				triangle(p4.x, p4.y, p5.x, p5.y, p6.x, p6.y);
-
-				canvas.getContext("2d").clip()
-			}
+			let p4 = createVector(0, 0 - (this.h / 2))
+			let p5 = createVector(this.w, this.h / 2)
+			let p6 = createVector(0, this.h + (this.h / 2))
+			triangle(p4.x, p4.y, p5.x, p5.y, p6.x, p6.y);
 		}
 
 		pop();
 
 	}
 
+	mask(p1, p2, p3, slider) {
+		// make a rectangle using drawRectis from point p1 to p2, with 10 percent the width of the midpoint between line p1p2 and p3
+		let midpoint = p5.Vector.add(p1, p2).div(2);
+		let length = p5.Vector.dist(midpoint, p3) / 5;
+		let moveDirection = p5.Vector.sub(midpoint, p3);
+		moveDirection.normalize();
+		offset = moveDirection.copy().mult(slider * length * 10);
+		moveDirection.mult(length);
+		p1 = p1.copy().add(offset);
+		p2 = p2.copy().add(offset);
+		p1.sub(moveDirection.copy().mult(4));
+		p2.sub(moveDirection.copy().mult(4));
 
-	drawRectis(xx, yy, xe, ye) {
-		push()
-		noStroke();
+		//first big one
 		beginShape();
-		vertex(xx, yy);
-		vertex(xe, ye);
-		vertex(xe + 40, ye + 20);
-		vertex(xx + 40, yy + 20)
-		endShape(CLOSE)
-		pop()
+		vertex(p1.x + moveDirection.x * 5, p1.y + moveDirection.y * 5);
+		vertex(p1.x, p1.y);
+		vertex(p2.x, p2.y);
+		vertex(p2.x + moveDirection.x * 5, p2.y + moveDirection.y * 5);
+		endShape(CLOSE);
+		for (let i = 0; i < 3; i++) {
+			noStroke();
+			beginShape();
+			vertex(p1.x - moveDirection.x, p1.y - moveDirection.y);
+			vertex(p1.x, p1.y);
+			vertex(p2.x, p2.y);
+			vertex(p2.x - moveDirection.x, p2.y - moveDirection.y);
+			endShape(CLOSE)
+			p1.sub(moveDirection.copy().mult(2));
+			p2.sub(moveDirection.copy().mult(2));
+		}
+
 	}
+
+
 
 
 } 

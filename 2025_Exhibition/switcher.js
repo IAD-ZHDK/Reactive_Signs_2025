@@ -131,8 +131,9 @@ function updateIframes() {
   // set numbers for the iframes
   for (var i = 0; i < noFrames; i++) {
     frames[i] = document.getElementById('screen' + i);
-    // set the id of the body ellement in the iframe  
+    // set the id of the body element in the iframe  
     frames[i].contentDocument.body.id = i;
+    frames[i].contentDocument.body.setAttribute('screen', i);
   }
   count = 0;
   handleKeyEvents();

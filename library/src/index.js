@@ -23,21 +23,43 @@ let manualCounter = false;
 let fadingIn = 255;
 let fadingOut = false;
 let exhibitionMode = false;
-
+let screenID = 0; // canvas index for multi-canvas setups
+let screenXoffset = false;
 let libraryFont
 
 /// hooks
 function libraryInit() {
   console.log("P5 version" + p5.VERSION);
   console.log("init");
+
+  // Initialize poster object and attach methods
   this.poster = this.poster || {};
+
+  // Bind the getCounter method to the poster object
+  this.poster.getCounter = p5.prototype.poster.getCounter.bind(this);
+
+
   globalVariables.position = p5.prototype.createVector(0, 0, 0);
   globalVariables.posNormal = p5.prototype.createVector(0, 0, 0); // normalised
   windowInstance = window;
   setUpOSC(enableDepth);
-  this.poster.position = globalVariables.position;
-  this.poster.posNormal = globalVariables.posNormal;
   incrementCounterInterval = setInterval(incrementCounter, 2000); // Call incrementCounter every 1000 milliseconds (1 second)
+
+  /// --- start: per-canvas poster offset setup ---
+  try {
+    const body = document.querySelector('body');
+    const screenNumber = body.getAttribute('screen');
+    screenID = screenNumber;
+    //console.log("canvas index:", screenID);
+    screenXoffset = true;
+  } catch (e) {
+    screenID = 0;
+    screenXoffset = false;
+  }
+
+  console.log("screenID: " + screenID);
+
+
 }
 
 function beforeSetup() {
@@ -131,9 +153,9 @@ if (poses != undefined && Settings.poseDetection == true) {
     // realsense data available over osc
     updatePosition(P5Instance, realsensePos.x, realsensePos.y, realsensePos.z)
     if (enableDepth) {
-      this.poster.depthData = OSCdepthData;
-      this.poster.depthW = OSCdepthW; // width of data array
-      this.poster.depthH = OSCdepthH; // width of height array
+      globalVariables.depthData = OSCdepthData;
+      globalVariables.depthW = OSCdepthW; // width of data array
+      globalVariables.depthH = OSCdepthH; // width of height array
     }
 
   } else {
@@ -153,6 +175,7 @@ if (poses != undefined && Settings.poseDetection == true) {
 }
 function libraryPostDraw() {
   let P5Instance = this;
+
 
   if (!fullscreenMode && debug) {
     P5Instance.cursor()
@@ -224,22 +247,40 @@ function updateViewportVariables(P5Instance) {
 
   }
 
-  for (let i = 0; i < globalVariables.screens.length; i++) {
-    globalVariables.screens[i].w = P5Instance.floor(w / globalVariables.screens.length);
-    globalVariables.screens[i].h = h;
-    globalVariables.screens[i].x = globalVariables.screens[i].w * i;
-    globalVariables.screens[i].y = 0;
-    globalVariables.screens[i].cntX = globalVariables.screens[i].x + globalVariables.screens[i].w / 2;
-    globalVariables.screens[i].cntY = globalVariables.screens[i].h / 2;
-  }
   globalVariables.vw = w * 0.01; // 1 percent of viewport width;
   globalVariables.vh = h * 0.01;// 1 percent of viewport height;  
 
-  P5Instance.poster.position = globalVariables.position;
-  P5Instance.poster.posNormal = globalVariables.posNormal;
+
+  //offset 
+  // This is for three poster setup, to offset each poster slightly horizontally
+
+
+
+  P5Instance.poster.position = globalVariables.position.copy();
+  P5Instance.poster.posNormal = globalVariables.posNormal.copy();
+
+  if (screenXoffset) {
+    let newX = globalVariables.posNormal.x
+    let offset = 0.2;
+    let startX = 0.0 + (screenID * offset);
+    let endX = 1.0 - (offset * 2) + (screenID * offset)
+
+    newX = P5Instance.constrain(newX, startX, endX);
+    //console.log("posNormal.x", globalVariables.posNormal.x, "startX", startX, "endX", endX, "newX", newX, "screenID", screenID);
+    newX = P5Instance.map(newX, startX, endX, 0.0, 1.0);
+
+    let xScaled = newX * P5Instance.width;
+
+    P5Instance.poster.position.x = xScaled;
+    P5Instance.poster.posNormal.x = newX;
+  }
+
+
+
+
   P5Instance.poster.vh = globalVariables.vh;
   P5Instance.poster.vw = globalVariables.vw;
-  P5Instance.poster.screens = globalVariables.screens;
+
 }
 
 function getWindowWidth() {

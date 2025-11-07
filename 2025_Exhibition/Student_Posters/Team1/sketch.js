@@ -191,7 +191,7 @@ function draw() {
   ambientMaterial(255, 255, 255);
 
   state = poster.getCounter();
-
+  console.log("state:", state);
   /*let isoX = 0;
   let isoY = 0;
   let isoZ = 500;
@@ -210,7 +210,7 @@ function draw() {
   lastShiftTime = millis();
 
 
- 
+
   if (poster.position.x !== lastMouseX) {
     let normalizedPosterX = map(poster.position.x, -width / 2, width / 2, -1, 1); // Map poster.position.x to a range of -1 to 1
     rotationAngle = -normalizedPosterX * PI; // Rotate to face left or right depending on position
@@ -220,74 +220,74 @@ function draw() {
   interpolateAll();
 
   let flipAngle = PI;
-  scale(poster.vw*9);
+  scale(poster.vw * 9);
 
 
   if (state == 0) {
     renderModel(zeroTop, zeroMiddle, zeroBottom, zeroTopPosition, zeroMiddlePosition, zeroBottomPosition, flipAngle);
-  } else if (state == 1) {
+  } else if (state == 9) {
     renderModel(nineTop, nineMiddle, nineBottom, nineTopPosition, nineMiddlePosition, nineBottomPosition, flipAngle, nineMiddle2, nineMiddle2Position);
-  } else if (state == 2) {
+  } else if (state == 8) {
     renderModel(eightTop, eightMiddle, eightBottom, eightTopPosition, eightMiddlePosition, eightBottomPosition, flipAngle);
-  } else if (state == 3) {
+  } else if (state == 7) {
     renderModel(sevenTop, sevenMiddle, sevenBottom, sevenTopPosition, sevenMiddlePosition, sevenBottomPosition, flipAngle);
-  } else if (state == 4) {
+  } else if (state == 6) {
     renderModel(sixTop, sixMiddle, sixBottom, sixTopPosition, sixMiddlePosition, sixBottomPosition, flipAngle, sixMiddle2, sixMiddle2Position);
   } else if (state == 5) {
     renderModel(fiveTop, fiveMiddle, fiveBottom, fiveTopPosition, fiveMiddlePosition, fiveBottomPosition, flipAngle);
-  } else if (state == 6) {
+  } else if (state == 4) {
     renderModel(fourTop, null, fourBottom, fourTopPosition, null, fourBottomPosition, flipAngle);
-  } else if (state == 7) {
+  } else if (state == 3) {
     renderModel(threeTop, threeMiddle, threeBottom, threeTopPosition, threeMiddlePosition, threeBottomPosition, flipAngle);
-  } else if (state == 8) {
+  } else if (state == 2) {
     renderModel(twoTop, twoMiddle, twoBottom, twoTopPosition, twoMiddlePosition, twoBottomPosition, flipAngle);
-  } else if (state == 9) {
+  } else if (state == 1) {
     renderModel(oneTop, null, oneBottom, oneTopPosition, null, oneBottomPosition, flipAngle);
   }
 
 }
 
-function interpolateAll(){
- // Interpolationen
- zeroTopPosition = interpolatePosition(zeroTopPosition, zeroTarget.top);
- zeroMiddlePosition = interpolatePosition(zeroMiddlePosition, zeroTarget.middle);
- zeroBottomPosition = interpolatePosition(zeroBottomPosition, zeroTarget.bottom);
+function interpolateAll() {
+  // Interpolationen
+  zeroTopPosition = interpolatePosition(zeroTopPosition, zeroTarget.top);
+  zeroMiddlePosition = interpolatePosition(zeroMiddlePosition, zeroTarget.middle);
+  zeroBottomPosition = interpolatePosition(zeroBottomPosition, zeroTarget.bottom);
 
- nineTopPosition = interpolatePosition(nineTopPosition, nineTarget.top);
- nineMiddlePosition = interpolatePosition(nineMiddlePosition, nineTarget.middle);
- nineMiddle2Position = interpolatePosition(nineMiddle2Position, nineTarget.middle2);
- nineBottomPosition = interpolatePosition(nineBottomPosition, nineTarget.bottom);
+  nineTopPosition = interpolatePosition(nineTopPosition, nineTarget.top);
+  nineMiddlePosition = interpolatePosition(nineMiddlePosition, nineTarget.middle);
+  nineMiddle2Position = interpolatePosition(nineMiddle2Position, nineTarget.middle2);
+  nineBottomPosition = interpolatePosition(nineBottomPosition, nineTarget.bottom);
 
- eightTopPosition = interpolatePosition(eightTopPosition, eightTarget.top);
- eightMiddlePosition = interpolatePosition(eightMiddlePosition, eightTarget.middle);
- eightBottomPosition = interpolatePosition(eightBottomPosition, eightTarget.bottom);
+  eightTopPosition = interpolatePosition(eightTopPosition, eightTarget.top);
+  eightMiddlePosition = interpolatePosition(eightMiddlePosition, eightTarget.middle);
+  eightBottomPosition = interpolatePosition(eightBottomPosition, eightTarget.bottom);
 
- sevenTopPosition = interpolatePosition(sevenTopPosition, sevenTarget.top);
- sevenMiddlePosition = interpolatePosition(sevenMiddlePosition, sevenTarget.middle);
- sevenBottomPosition = interpolatePosition(sevenBottomPosition, sevenTarget.bottom);
+  sevenTopPosition = interpolatePosition(sevenTopPosition, sevenTarget.top);
+  sevenMiddlePosition = interpolatePosition(sevenMiddlePosition, sevenTarget.middle);
+  sevenBottomPosition = interpolatePosition(sevenBottomPosition, sevenTarget.bottom);
 
- sixTopPosition = interpolatePosition(sixTopPosition, sixTarget.top);
- sixMiddlePosition = interpolatePosition(sixMiddlePosition, sixTarget.middle);
- sixMiddle2Position = interpolatePosition(sixMiddle2Position, sixTarget.middle2);
- sixBottomPosition = interpolatePosition(sixBottomPosition, sixTarget.bottom);
+  sixTopPosition = interpolatePosition(sixTopPosition, sixTarget.top);
+  sixMiddlePosition = interpolatePosition(sixMiddlePosition, sixTarget.middle);
+  sixMiddle2Position = interpolatePosition(sixMiddle2Position, sixTarget.middle2);
+  sixBottomPosition = interpolatePosition(sixBottomPosition, sixTarget.bottom);
 
- fiveTopPosition = interpolatePosition(fiveTopPosition, fiveTarget.top);
- fiveMiddlePosition = interpolatePosition(fiveMiddlePosition, fiveTarget.middle);
- fiveBottomPosition = interpolatePosition(fiveBottomPosition, fiveTarget.bottom);
+  fiveTopPosition = interpolatePosition(fiveTopPosition, fiveTarget.top);
+  fiveMiddlePosition = interpolatePosition(fiveMiddlePosition, fiveTarget.middle);
+  fiveBottomPosition = interpolatePosition(fiveBottomPosition, fiveTarget.bottom);
 
- fourTopPosition = interpolatePosition(fourTopPosition, fourTarget.top);
- fourBottomPosition = interpolatePosition(fourBottomPosition, fourTarget.bottom);
+  fourTopPosition = interpolatePosition(fourTopPosition, fourTarget.top);
+  fourBottomPosition = interpolatePosition(fourBottomPosition, fourTarget.bottom);
 
- threeTopPosition = interpolatePosition(threeTopPosition, threeTarget.top);
- threeMiddlePosition = interpolatePosition(threeMiddlePosition, threeTarget.middle);
- threeBottomPosition = interpolatePosition(threeBottomPosition, threeTarget.bottom);
+  threeTopPosition = interpolatePosition(threeTopPosition, threeTarget.top);
+  threeMiddlePosition = interpolatePosition(threeMiddlePosition, threeTarget.middle);
+  threeBottomPosition = interpolatePosition(threeBottomPosition, threeTarget.bottom);
 
- twoTopPosition = interpolatePosition(twoTopPosition, twoTarget.top);
- twoMiddlePosition = interpolatePosition(twoMiddlePosition, twoTarget.middle);
- twoBottomPosition = interpolatePosition(twoBottomPosition, twoTarget.bottom);
+  twoTopPosition = interpolatePosition(twoTopPosition, twoTarget.top);
+  twoMiddlePosition = interpolatePosition(twoMiddlePosition, twoTarget.middle);
+  twoBottomPosition = interpolatePosition(twoBottomPosition, twoTarget.bottom);
 
- oneTopPosition = interpolatePosition(oneTopPosition, oneTarget.top);
- oneBottomPosition = interpolatePosition(oneBottomPosition, oneTarget.bottom);
+  oneTopPosition = interpolatePosition(oneTopPosition, oneTarget.top);
+  oneBottomPosition = interpolatePosition(oneBottomPosition, oneTarget.bottom);
 
 }
 
@@ -328,23 +328,23 @@ function renderModel(top, middle, bottom, topPos, middlePos, bottomPos, flip, mi
 
 function setTarget(state) {
   let active = zeroTarget;
-  if (state == 1) {
+  if (state == 9) {
     active = nineTarget;
-  } else if (state == 2) {
+  } else if (state == 8) {
     active = eightTarget;
-  } else if (state == 3) {
+  } else if (state == 7) {
     active = sevenTarget;
-  } else if (state == 4) {
+  } else if (state == 6) {
     active = sixTarget;
   } else if (state == 5) {
     active = fiveTarget;
-  } else if (state == 6) {
+  } else if (state == 4) {
     active = fourTarget;
-  } else if (state == 7) {
+  } else if (state == 3) {
     active = threeTarget;
-  } else if (state == 8) {
+  } else if (state == 2) {
     active = twoTarget;
-  } else if (state == 9) {
+  } else if (state == 1) {
     active = oneTarget;
   }
 
