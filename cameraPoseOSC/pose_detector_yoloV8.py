@@ -601,12 +601,15 @@ class YOLODetectorOSC:
                     
                     # Load model selection if saved
                     saved_model = settings.get('current_model', None)
+                    print(f"DEBUG: saved_model from JSON: {saved_model}")
+                    print(f"DEBUG: current_model_name: {self.current_model_name}")
                     if saved_model and saved_model in AVAILABLE_MODELS:
                         self.selected_model_key = saved_model
-                        print(f"Restoring saved model: {saved_model}")
-                        # Reload the model if it's different from the currently loaded one
                         model_file = AVAILABLE_MODELS[saved_model]['file']
-                        if model_file and model_file != self.current_model_name:
+                        print(f"DEBUG: model_file for saved_model: {model_file}")
+                        print(f"Restoring saved model: {saved_model}")
+                        # Always reload if we have a saved model preference
+                        if model_file:
                             print(f"  Loading saved model: {model_file}")
                             self.load_model(model_file)
                     

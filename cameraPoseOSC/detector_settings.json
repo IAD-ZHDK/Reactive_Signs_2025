@@ -4,7 +4,7 @@
   "crop_x2": 638,
   "crop_y2": 452,
   "detection_hold_frames": 2,
-  "current_model": "exdark",
-  "flip_horizontal": true,
-  "flip_vertical": true
+  "current_model": "yolov8n",
+  "flip_horizontal": false,
+  "flip_vertical": false
 }
