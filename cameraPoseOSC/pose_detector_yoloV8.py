@@ -248,13 +248,16 @@ class YOLODetectorOSC:
             # Ultralytics YOLO handles precision internally, so we don't manually call .half()
             
             # Enable half precision (FP16) for CUDA to boost performance
+            self.use_fp16 = False  # Track if FP16 is successfully enabled
             if TORCH_AVAILABLE and self.device.startswith('cuda'):
                 try:
-                    print("Enabling FP16 (half precision) for faster inference...")
+                    print("Attempting to enable FP16 (half precision) for faster inference...")
                     self.model.model.half()
-                    print("✓ FP16 enabled")
+                    self.use_fp16 = True
+                    print("✓ FP16 enabled successfully")
                 except Exception as e:
                     print(f"⚠ Could not enable FP16: {e}")
+                    print("  Continuing with FP32 (full precision)")
             
             else:
                 self.device = 'cpu'
@@ -937,14 +940,16 @@ class YOLODetectorOSC:
             if TORCH_AVAILABLE and hasattr(self, 'device'):
                 try:
                     self.model.to(self.device)
-                    # Enable FP16 for CUDA
-                    if self.device.startswith('cuda'):
+                    # Enable FP16 for CUDA if it was successfully enabled initially
+                    if self.device.startswith('cuda') and getattr(self, 'use_fp16', False):
                         try:
                             print("Enabling FP16 (half precision)...")
                             self.model.model.half()
                             print("✓ FP16 enabled")
                         except Exception as e:
                             print(f"⚠ FP16 not available: {e}")
+                            self.use_fp16 = False
+                            print("  Disabling FP16 for this session")
                 except Exception:
                     pass
             
@@ -1239,15 +1244,36 @@ class YOLODetectorOSC:
                             # Force model to use a small inference size to avoid internal upscaling
                             # Use half=True for FP16 on CUDA, and disable augmentation for speed
                             try:
-                                use_half = self.device.startswith('cuda') if hasattr(self, 'device') else False
+                                # Only use FP16 if it was successfully enabled
+                                use_half = getattr(self, 'use_fp16', False)
                                 results = self.model(
                                     inference_frame, 
                                     imgsz=self.inference_size, 
                                     verbose=False,
-                                    half=use_half,  # Use FP16 on CUDA
+                                    half=use_half,  # Use FP16 only if successfully enabled
                                     augment=False,  # Disable test-time augmentation for speed
                                     agnostic_nms=True  # Faster NMS
                                 )
+                            except RuntimeError as e:
+                                # Handle dtype mismatch errors (FP16/FP32 incompatibility)
+                                if 'dtype' in str(e) or 'Half' in str(e):
+                                    print(f"\n⚠ FP16 dtype error detected: {e}")
+                                    print("Disabling FP16 and retrying with FP32...")
+                                    self.use_fp16 = False
+                                    # Retry without FP16
+                                    try:
+                                        results = self.model(
+                                            inference_frame,
+                                            imgsz=self.inference_size,
+                                            verbose=False,
+                                            half=False,
+                                            augment=False,
+                                            agnostic_nms=True
+                                        )
+                                    except TypeError:
+                                        results = self.model(inference_frame, imgsz=self.inference_size, verbose=False)
+                                else:
+                                    raise
                             except TypeError:
                                 # older ultralytics versions might not accept all params; fall back
                                 try:
@@ -1336,6 +1362,7 @@ class YOLODetectorOSC:
                     print("PERFORMANCE DIAGNOSTICS")
                     print("="*60)
                     print(f"Device: {getattr(self, 'device', 'unknown')}")
+                    print(f"FP16 Enabled: {getattr(self, 'use_fp16', False)}")
                     print(f"FPS: {self.current_fps}")
                     print(f"Crop size: {self.crop_x2-self.crop_x1}x{self.crop_y2-self.crop_y1}")
                     print(f"Inference size: {self.inference_size}")
