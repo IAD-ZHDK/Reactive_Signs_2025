@@ -838,6 +838,46 @@ class YOLODetectorOSC:
         
         print("✓ Camera restart complete")
 
+    def switch_camera(self, new_camera_id):
+        """Switch to a different camera input"""
+        if self.using_video_file:
+            print("Cannot switch camera - currently using video file")
+            return False
+        
+        print(f"Switching from camera {self.camera_id} to camera {new_camera_id}...")
+        
+        # Release current camera
+        self.cap.release()
+        time.sleep(0.5)
+        
+        # Try to open new camera
+        self.cap = cv2.VideoCapture(new_camera_id)
+        
+        if not self.cap.isOpened():
+            print(f"✗ Failed to open camera {new_camera_id}, reverting to camera {self.camera_id}")
+            # Revert to previous camera
+            self.cap = cv2.VideoCapture(self.camera_id)
+            if not self.cap.isOpened():
+                raise RuntimeError(f"Failed to revert to camera {self.camera_id}")
+            return False
+        
+        # Update camera_id and settings
+        self.camera_id = new_camera_id
+        self.camera_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.camera_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # Apply camera settings
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.camera_width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.camera_height)
+        self.cap.set(cv2.CAP_PROP_FPS, 30)
+        
+        # Reset freeze detection tracking
+        self.last_frame_change_time = time.time()
+        self.last_frame_hash = None
+        
+        print(f"✓ Switched to camera {new_camera_id} ({self.camera_width}x{self.camera_height})")
+        return True
+
     def cleanup(self):
         """Clean up resources"""
         print("Cleaning up...")
@@ -937,6 +977,7 @@ class YOLODetectorOSC:
             "",
             "DISPLAY:",
             f"  Model: {model_display} | FPS: {self.current_fps}",
+            f"  Camera ID: {self.camera_id} | Resolution: {self.camera_width}x{self.camera_height}",
             f"  OSC: /depth -> {self.osc_host}:{self.osc_port}",
             f"  Crop: ({self.crop_x1},{self.crop_y1}) to ({self.crop_x2},{self.crop_y2})",
             "",
@@ -969,7 +1010,10 @@ class YOLODetectorOSC:
             "  V / W - Adjust background subtraction learning rate",
             "  H - Toggle horizontal flip",
             "  F - Toggle vertical flip",
+            "",
+            "CAMERA:",
             "  X - Manual camera restart (if frozen)",
+            "  Z / N - Switch to previous / next camera input",
             "",
             "DETECTION:",
             "  U / I - Decrease / Increase process_every_n_frames (optimize speed)",
@@ -1299,6 +1343,23 @@ class YOLODetectorOSC:
                         self.restart_camera()
                     else:
                         print("Cannot restart - using video file")
+                elif key == ord('z'):
+                    # Switch to previous camera
+                    if not getattr(self, 'using_video_file', False):
+                        new_id = max(0, self.camera_id - 1)
+                        if new_id != self.camera_id:
+                            self.switch_camera(new_id)
+                        else:
+                            print(f"Already at camera {self.camera_id} (minimum)")
+                    else:
+                        print("Cannot switch camera - using video file")
+                elif key == ord('n'):
+                    # Switch to next camera
+                    if not getattr(self, 'using_video_file', False):
+                        new_id = self.camera_id + 1
+                        self.switch_camera(new_id)  # Will fail gracefully if camera doesn't exist
+                    else:
+                        print("Cannot switch camera - using video file")
                 elif key == ord('u'): # Decrease processing frequency (process every more frames)
                     self.process_every_n_frames = min(self.process_every_n_frames + 1, 10)
                     print(f"Processing every {self.process_every_n_frames} frames")

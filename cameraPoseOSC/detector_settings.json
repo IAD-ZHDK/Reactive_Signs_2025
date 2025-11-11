@@ -6,5 +6,5 @@
   "detection_hold_frames": 2,
   "current_model": "exdark",
   "flip_horizontal": true,
-  "flip_vertical": true
+  "flip_vertical": false
 }
