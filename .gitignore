@@ -15,6 +15,9 @@ __pycache__/
 .pytest_cache/
 .env
 
+# Detector settings (personal configuration)
+**/detector_settings.json
+
 # Virtual environments
 venv/
 env/
