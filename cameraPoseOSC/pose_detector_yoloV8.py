@@ -1046,6 +1046,7 @@ class YOLODetectorOSC:
             "  R - Reset crop area",
             "  S - Save settings",
             "  Y - Show performance diagnostics (GPU/memory info)",
+            "  T - Toggle FP16/FP32 precision (CUDA only, affects speed)",
             "  SPACE - Pause / Resume",
             "  Q / ESC - Quit",
             "",
@@ -1383,6 +1384,24 @@ class YOLODetectorOSC:
                         except Exception as e:
                             print(f"Could not get GPU stats: {e}")
                     print("="*60 + "\n")
+                elif key == ord('t'):
+                    # Toggle FP16 (half precision) for CUDA
+                    if TORCH_AVAILABLE and hasattr(self, 'device') and self.device.startswith('cuda'):
+                        self.use_fp16 = not self.use_fp16
+                        try:
+                            if self.use_fp16:
+                                print("Enabling FP16 (half precision)...")
+                                self.model.model.half()
+                                print("✓ FP16 enabled - should see 2x speed boost")
+                            else:
+                                print("Disabling FP16, converting to FP32...")
+                                self.model.model.float()
+                                print("✓ FP32 enabled - more compatible but slower")
+                        except Exception as e:
+                            print(f"✗ Failed to toggle FP16: {e}")
+                            self.use_fp16 = False
+                    else:
+                        print("FP16 toggle only available on CUDA devices")
                 elif key == ord('e'):
                     self.show_enhanced = not self.show_enhanced
                 elif key == ord('b'):
