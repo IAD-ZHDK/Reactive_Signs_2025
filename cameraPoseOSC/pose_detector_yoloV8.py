@@ -311,6 +311,8 @@ class YOLODetectorOSC:
         self.fps_counter = 0
         self.fps_start_time = time.time()
         self.current_fps = 0
+        self.controls_update_counter = 0  # Only update controls window periodically
+        self.controls_image_cache = None  # Cache the controls image
         
         # Flip settings (initialize before load_settings)
         self.flip_horizontal = False  # Mirror the input horizontally
@@ -1253,7 +1255,10 @@ class YOLODetectorOSC:
                                     verbose=False,
                                     half=use_half,  # Use FP16 only if successfully enabled
                                     augment=False,  # Disable test-time augmentation for speed
-                                    agnostic_nms=True  # Faster NMS
+                                    agnostic_nms=True,  # Faster NMS
+                                    max_det=1,  # Only detect 1 person (fastest)
+                                    conf=self.confidence_threshold,  # Early filtering
+                                    iou=0.7  # Higher IOU = fewer boxes to process
                                 )
                             except RuntimeError as e:
                                 # Handle dtype mismatch errors (FP16/FP32 incompatibility)
@@ -1322,9 +1327,12 @@ class YOLODetectorOSC:
                 self.update_fps()
                 cv2.imshow(window_name, display_frame)
                 
-                # Create and display controls window
-                controls_image = self.create_controls_image()
-                cv2.imshow(controls_window_name, controls_image)
+                # Create and display controls window (only update every 10 frames for performance)
+                self.controls_update_counter += 1
+                if self.controls_update_counter >= 10 or self.controls_image_cache is None:
+                    self.controls_image_cache = self.create_controls_image()
+                    self.controls_update_counter = 0
+                cv2.imshow(controls_window_name, self.controls_image_cache)
                 
                 draw_t1 = time.time()
                 draw_time = draw_t1 - draw_t0
