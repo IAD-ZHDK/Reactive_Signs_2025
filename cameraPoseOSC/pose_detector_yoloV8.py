@@ -303,7 +303,9 @@ class YOLODetectorOSC:
         self.flip_vertical = False    # Mirror the input vertically
         
         # Settings
-        self.settings_file = "detector_settings.json"
+        # Use absolute path to settings file in the same directory as this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.settings_file = os.path.join(script_dir, "detector_settings.json")
         self.load_settings()
 
         # Font configuration (DUPLEX is better for small/low-res displays than SIMPLEX)
@@ -584,6 +586,7 @@ class YOLODetectorOSC:
         return enhanced_uint8
     def load_settings(self):
         """Load settings from JSON file if it exists"""
+        print(f"Looking for settings file: {self.settings_file}")
         if os.path.exists(self.settings_file):
             try:
                 with open(self.settings_file, 'r') as f:
@@ -601,12 +604,19 @@ class YOLODetectorOSC:
                     if saved_model and saved_model in AVAILABLE_MODELS:
                         self.selected_model_key = saved_model
                         print(f"Restoring saved model: {saved_model}")
+                        # Reload the model if it's different from the currently loaded one
+                        model_file = AVAILABLE_MODELS[saved_model]['file']
+                        if model_file and model_file != self.current_model_name:
+                            print(f"  Loading saved model: {model_file}")
+                            self.load_model(model_file)
                     
                     print("Settings loaded from file")
                     print(f"  Flip horizontal: {self.flip_horizontal}")
                     print(f"  Flip vertical: {self.flip_vertical}")
             except Exception as e:
                 print(f"Could not load settings: {e}")
+        else:
+            print(f"Settings file not found at: {self.settings_file}")
     
     def save_settings(self):
         """Save current settings to JSON file"""

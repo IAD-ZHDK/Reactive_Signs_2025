@@ -1,10 +1,10 @@
 {
-  "crop_x1": 67,
-  "crop_y1": 171,
-  "crop_x2": 902,
-  "crop_y2": 588,
+  "crop_x1": 140,
+  "crop_y1": 135,
+  "crop_x2": 638,
+  "crop_y2": 452,
   "detection_hold_frames": 2,
-  "current_model": "yolov8n",
-  "flip_horizontal": false,
+  "current_model": "exdark",
+  "flip_horizontal": true,
   "flip_vertical": true
 }
