@@ -246,6 +246,16 @@ class YOLODetectorOSC:
                     pass
             # Note: FP16 half precision can cause dtype mismatches with some YOLO models
             # Ultralytics YOLO handles precision internally, so we don't manually call .half()
+            
+            # Enable half precision (FP16) for CUDA to boost performance
+            if TORCH_AVAILABLE and self.device.startswith('cuda'):
+                try:
+                    print("Enabling FP16 (half precision) for faster inference...")
+                    self.model.model.half()
+                    print("✓ FP16 enabled")
+                except Exception as e:
+                    print(f"⚠ Could not enable FP16: {e}")
+            
             else:
                 self.device = 'cpu'
             print(f"\n✓ YOLO model loaded: {loaded_name} on {self.device}\n")
@@ -615,8 +625,32 @@ class YOLODetectorOSC:
                         model_file = AVAILABLE_MODELS[saved_model]['file']
                         print(f"DEBUG: model_file for saved_model: {model_file}")
                         print(f"Restoring saved model: {saved_model}")
-                        # Always reload if we have a saved model preference
-                        if model_file:
+                        
+                        # Special handling for exdark (needs to search for weights)
+                        if saved_model == 'exdark':
+                            exdark_dir = os.path.expanduser('./exdark')
+                            found = []
+                            if os.path.exists(exdark_dir):
+                                # Look for best.pt or last.pt first
+                                for root, dirs, files in os.walk(exdark_dir):
+                                    for f in files:
+                                        if f.endswith('.pt') and ('best' in f.lower() or 'last' in f.lower()):
+                                            found.append(os.path.join(root, f))
+                            if not found and os.path.exists(exdark_dir):
+                                # If not found, look for any .pt file
+                                for root, dirs, files in os.walk(exdark_dir):
+                                    for f in files:
+                                        if f.endswith('.pt'):
+                                            found.append(os.path.join(root, f))
+                            if found:
+                                # Sort: prefer 'best' over 'last'
+                                found.sort(key=lambda p: (0 if 'best' in os.path.basename(p).lower() else 1, p))
+                                print(f"  Loading EXDark model: {found[0]}")
+                                self.load_model(found[0])
+                            else:
+                                print("  ✗ EXDark weights not found in ./exdark folder, keeping default model")
+                        elif model_file:
+                            # Standard model loading
                             print(f"  Loading saved model: {model_file}")
                             self.load_model(model_file)
                     
@@ -903,6 +937,14 @@ class YOLODetectorOSC:
             if TORCH_AVAILABLE and hasattr(self, 'device'):
                 try:
                     self.model.to(self.device)
+                    # Enable FP16 for CUDA
+                    if self.device.startswith('cuda'):
+                        try:
+                            print("Enabling FP16 (half precision)...")
+                            self.model.model.half()
+                            print("✓ FP16 enabled")
+                        except Exception as e:
+                            print(f"⚠ FP16 not available: {e}")
                 except Exception:
                     pass
             
@@ -965,7 +1007,7 @@ class YOLODetectorOSC:
 
     def create_controls_image(self):
         """Create a controls reference image to display in separate window"""
-        width, height = 1200, 1400  # Increased size to show all content
+        width, height = 1200, 1600  # Increased height to show all shortcuts
         controls_image = np.zeros((height, width, 3), dtype=np.uint8)
         
         # Display the currently loaded model name
@@ -978,6 +1020,7 @@ class YOLODetectorOSC:
             "DISPLAY:",
             f"  Model: {model_display} | FPS: {self.current_fps}",
             f"  Camera ID: {self.camera_id} | Resolution: {self.camera_width}x{self.camera_height}",
+            f"  Device: {getattr(self, 'device', 'unknown')} | Crop size: {self.crop_x2-self.crop_x1}x{self.crop_y2-self.crop_y1}",
             f"  OSC: /depth -> {self.osc_host}:{self.osc_port}",
             f"  Crop: ({self.crop_x1},{self.crop_y1}) to ({self.crop_x2},{self.crop_y2})",
             "",
@@ -997,6 +1040,7 @@ class YOLODetectorOSC:
             "  D - Toggle detections overlay",
             "  R - Reset crop area",
             "  S - Save settings",
+            "  Y - Show performance diagnostics (GPU/memory info)",
             "  SPACE - Pause / Resume",
             "  Q / ESC - Quit",
             "",
@@ -1098,7 +1142,7 @@ class YOLODetectorOSC:
             cv2.namedWindow(controls_window_name, cv2.WINDOW_NORMAL)
         except:
             cv2.namedWindow(controls_window_name)
-        cv2.resizeWindow(controls_window_name, 1200, 1400)
+        cv2.resizeWindow(controls_window_name, 1200, 1600)
 
         cv2.setMouseCallback(window_name, self.mouse_callback)
         
@@ -1193,11 +1237,23 @@ class YOLODetectorOSC:
                             # Run detection on smaller frame
                             inf_t0 = time.time()
                             # Force model to use a small inference size to avoid internal upscaling
+                            # Use half=True for FP16 on CUDA, and disable augmentation for speed
                             try:
-                                results = self.model(inference_frame, imgsz=self.inference_size, verbose=False)
+                                use_half = self.device.startswith('cuda') if hasattr(self, 'device') else False
+                                results = self.model(
+                                    inference_frame, 
+                                    imgsz=self.inference_size, 
+                                    verbose=False,
+                                    half=use_half,  # Use FP16 on CUDA
+                                    augment=False,  # Disable test-time augmentation for speed
+                                    agnostic_nms=True  # Faster NMS
+                                )
                             except TypeError:
-                                # older ultralytics versions might not accept imgsz at call; fall back
-                                results = self.model(inference_frame, verbose=False)
+                                # older ultralytics versions might not accept all params; fall back
+                                try:
+                                    results = self.model(inference_frame, imgsz=self.inference_size, verbose=False)
+                                except TypeError:
+                                    results = self.model(inference_frame, verbose=False)
                             inf_t1 = time.time()
                             inference_time = inf_t1 - inf_t0
                             self.timing['inference'] += inference_time
@@ -1274,6 +1330,32 @@ class YOLODetectorOSC:
                     self.reset_crop()
                 elif key == ord('s'):
                     self.save_settings()
+                elif key == ord('y'):
+                    # Print diagnostic info
+                    print("\n" + "="*60)
+                    print("PERFORMANCE DIAGNOSTICS")
+                    print("="*60)
+                    print(f"Device: {getattr(self, 'device', 'unknown')}")
+                    print(f"FPS: {self.current_fps}")
+                    print(f"Crop size: {self.crop_x2-self.crop_x1}x{self.crop_y2-self.crop_y1}")
+                    print(f"Inference size: {self.inference_size}")
+                    print(f"Process every N frames: {self.process_every_n_frames}")
+                    if TORCH_AVAILABLE and hasattr(self, 'device') and self.device.startswith('cuda'):
+                        try:
+                            gpu_id = int(self.device.split(':')[1]) if ':' in self.device else 0
+                            allocated = torch.cuda.memory_allocated(gpu_id) / 1024**3
+                            cached = torch.cuda.memory_reserved(gpu_id) / 1024**3
+                            total = torch.cuda.get_device_properties(gpu_id).total_memory / 1024**3
+                            print(f"GPU Memory: {allocated:.2f}GB allocated, {cached:.2f}GB cached, {total:.1f}GB total")
+                            # Check if model is in FP16
+                            try:
+                                model_dtype = next(self.model.model.parameters()).dtype
+                                print(f"Model precision: {model_dtype}")
+                            except:
+                                pass
+                        except Exception as e:
+                            print(f"Could not get GPU stats: {e}")
+                    print("="*60 + "\n")
                 elif key == ord('e'):
                     self.show_enhanced = not self.show_enhanced
                 elif key == ord('b'):
