@@ -152,6 +152,7 @@ class YOLODetectorOSC:
 
         self.video_file = video_file
         self.using_video_file = False
+        self.camera_id = camera_id  # Store camera_id for restart
         if video_file:
             print(f"Using video file for input: {video_file}")
             self.cap = cv2.VideoCapture(video_file)
@@ -327,6 +328,12 @@ class YOLODetectorOSC:
         # Smoothed average point for stable output (normalized x,y,z)
         self.smoothed_point = None
         self.smoothing_alpha = 0.2  # base smoothing factor (0-1)
+        
+        # Camera freeze detection and auto-restart
+        self.last_frame_hash = None  # Hash of last frame to detect frozen camera
+        self.last_frame_change_time = time.time()  # Last time frame changed
+        self.camera_freeze_threshold = 20.0  # Seconds before considering camera frozen
+        self.camera_restart_in_progress = False  # Flag to prevent multiple restart attempts
 
     def update_smoothed_point(self, detected_point: Optional[Tuple[float, float, float]], tracking: bool) -> Tuple[float, float, float]:
         """Update and return smoothed normalized (x,y,z).
@@ -800,6 +807,37 @@ class YOLODetectorOSC:
                 except Exception as e:
                     print(f"Failed to send UDP OSC: {e}")
 
+    def get_frame_hash(self, frame):
+        """Compute a lightweight hash of the frame using mean pixel values"""
+        # Using mean of each color channel as a simple hash
+        # This is much faster than full hash and sufficient for freeze detection
+        return tuple(cv2.mean(frame)[:3])
+    
+    def restart_camera(self):
+        """Restart the camera feed when it appears frozen"""
+        if self.camera_restart_in_progress:
+            return
+        
+        self.camera_restart_in_progress = True
+        print("⚠️  Camera appears frozen, attempting restart...")
+        
+        # Release the current camera
+        self.cap.release()
+        time.sleep(1)
+        
+        # Reinitialize camera
+        self.cap = cv2.VideoCapture(self.camera_id)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.camera_width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.camera_height)
+        self.cap.set(cv2.CAP_PROP_FPS, 30)
+        
+        # Reset freeze detection tracking
+        self.last_frame_change_time = time.time()
+        self.last_frame_hash = None
+        self.camera_restart_in_progress = False
+        
+        print("✓ Camera restart complete")
+
     def cleanup(self):
         """Clean up resources"""
         print("Cleaning up...")
@@ -931,6 +969,7 @@ class YOLODetectorOSC:
             "  V / W - Adjust background subtraction learning rate",
             "  H - Toggle horizontal flip",
             "  F - Toggle vertical flip",
+            "  X - Manual camera restart (if frozen)",
             "",
             "DETECTION:",
             "  U / I - Decrease / Increase process_every_n_frames (optimize speed)",
@@ -995,7 +1034,7 @@ class YOLODetectorOSC:
     def run(self):
         """Main processing loop"""
         print("Starting YOLO detection...")
-        print("Controls: C=crop toggle, D=detections toggle, R=reset crop, S=save, E=enhancement toggle, SPACE=pause, Q=quit")
+        print("Controls: C=crop toggle, D=detections toggle, R=reset crop, S=save, E=enhancement toggle, H/F=flip, X=restart camera, SPACE=pause, Q=quit")
         
         window_name = 'YOLO Person Detection OSC'
         controls_window_name = 'Controls & Shortcuts'
@@ -1043,6 +1082,18 @@ class YOLODetectorOSC:
                     frame = cv2.flip(frame, 1)   # Flip horizontally
                 elif self.flip_vertical:
                     frame = cv2.flip(frame, 0)   # Flip vertically
+                
+                # Check for frozen camera (only for live camera, not video files)
+                if not getattr(self, 'using_video_file', False):
+                    frame_hash = self.get_frame_hash(frame)
+                    if frame_hash != self.last_frame_hash:
+                        # Frame has changed, update tracking
+                        self.last_frame_hash = frame_hash
+                        self.last_frame_change_time = time.time()
+                    elif time.time() - self.last_frame_change_time > self.camera_freeze_threshold:
+                        # Frame hasn't changed for too long, restart camera
+                        self.restart_camera()
+                        continue  # Skip this frame and wait for next one
                 
                 display_frame = frame.copy()  # Copy for display
                 
@@ -1241,6 +1292,13 @@ class YOLODetectorOSC:
                     # Toggle vertical flip
                     self.flip_vertical = not self.flip_vertical
                     print(f"Flip vertical: {self.flip_vertical}")
+                elif key == ord('x'):
+                    # Manual camera restart
+                    if not getattr(self, 'using_video_file', False):
+                        print("Manual camera restart triggered...")
+                        self.restart_camera()
+                    else:
+                        print("Cannot restart - using video file")
                 elif key == ord('u'): # Decrease processing frequency (process every more frames)
                     self.process_every_n_frames = min(self.process_every_n_frames + 1, 10)
                     print(f"Processing every {self.process_every_n_frames} frames")
