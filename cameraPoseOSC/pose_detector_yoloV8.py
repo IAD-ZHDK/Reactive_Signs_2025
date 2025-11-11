@@ -302,6 +302,11 @@ class YOLODetectorOSC:
         self.flip_horizontal = False  # Mirror the input horizontally
         self.flip_vertical = False    # Mirror the input vertically
         
+        # Detection hold: keep showing last known point if detection is lost for a few frames
+        self.last_valid_point = None  # Last detected point
+        self.frames_without_detection = 0  # Counter for frames without detection
+        self.detection_hold_frames = 2  # Number of frames to hold last point (configurable, default=2)
+        
         # Settings
         # Use absolute path to settings file in the same directory as this script
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -322,11 +327,6 @@ class YOLODetectorOSC:
         # Smoothed average point for stable output (normalized x,y,z)
         self.smoothed_point = None
         self.smoothing_alpha = 0.2  # base smoothing factor (0-1)
-        
-        # Detection hold: keep showing last known point if detection is lost for a few frames
-        self.last_valid_point = None  # Last detected point
-        self.frames_without_detection = 0  # Counter for frames without detection
-        self.detection_hold_frames = 2  # Number of frames to hold last point (configurable, default=2)
 
     def update_smoothed_point(self, detected_point: Optional[Tuple[float, float, float]], tracking: bool) -> Tuple[float, float, float]:
         """Update and return smoothed normalized (x,y,z).
