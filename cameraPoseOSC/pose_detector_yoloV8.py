@@ -603,6 +603,8 @@ class YOLODetectorOSC:
                         print(f"Restoring saved model: {saved_model}")
                     
                     print("Settings loaded from file")
+                    print(f"  Flip horizontal: {self.flip_horizontal}")
+                    print(f"  Flip vertical: {self.flip_vertical}")
             except Exception as e:
                 print(f"Could not load settings: {e}")
     

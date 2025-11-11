@@ -4,7 +4,7 @@
   "crop_x2": 902,
   "crop_y2": 588,
   "detection_hold_frames": 2,
-  "current_model": "yolov10s",
-  "flip_horizontal": true,
+  "current_model": "yolov8n",
+  "flip_horizontal": false,
   "flip_vertical": true
 }
