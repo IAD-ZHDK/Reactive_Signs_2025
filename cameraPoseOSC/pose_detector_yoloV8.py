@@ -1277,9 +1277,30 @@ class YOLODetectorOSC:
                         self.frame_count = 0
                 elif key == ord('8'):
                     # Load EXDark (low-light optimized)
-                    if self.load_model(AVAILABLE_MODELS['exdark']['file']):
-                        self.selected_model_key = 'exdark'
-                        self.frame_count = 0
+                    # EXDark needs custom weights from the exdark folder
+                    exdark_dir = os.path.expanduser('./exdark')
+                    found = []
+                    if os.path.exists(exdark_dir):
+                        # First, look for best.pt or last.pt
+                        for root, dirs, files in os.walk(exdark_dir):
+                            for f in files:
+                                if f.endswith('.pt') and ('best' in f.lower() or 'last' in f.lower()):
+                                    found.append(os.path.join(root, f))
+                    if not found and os.path.exists(exdark_dir):
+                        # If not found, look for any .pt file
+                        for root, dirs, files in os.walk(exdark_dir):
+                            for f in files:
+                                if f.endswith('.pt'):
+                                    found.append(os.path.join(root, f))
+                    if found:
+                        # Sort: prefer 'best' over 'last', then alphabetically
+                        found.sort(key=lambda p: (0 if 'best' in os.path.basename(p).lower() else 1, p))
+                        if self.load_model(found[0]):
+                            self.selected_model_key = 'exdark'
+                            self.frame_count = 0
+                    else:
+                        print("✗ No EXDark weights found in ./exdark folder")
+                        print("  Please place your trained EXDark weights (e.g., best.pt) in ./exdark/")
                 elif key == ord('9'):
                     # Load RT-DETR
                     if self.load_model(AVAILABLE_MODELS['rtdetr-x']['file']):
