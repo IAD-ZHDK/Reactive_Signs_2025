@@ -321,6 +321,10 @@ class YOLODetectorOSC:
         self.last_valid_point = None  # Last detected point
         self.frames_without_detection = 0  # Counter for frames without detection
         self.detection_hold_frames = 2  # Number of frames to hold last point (configurable, default=2)
+        
+        # Flip settings
+        self.flip_horizontal = False  # Mirror the input horizontally
+        self.flip_vertical = False    # Mirror the input vertically
 
     def update_smoothed_point(self, detected_point: Optional[Tuple[float, float, float]], tracking: bool) -> Tuple[float, float, float]:
         """Update and return smoothed normalized (x,y,z).
@@ -589,6 +593,8 @@ class YOLODetectorOSC:
                     self.crop_x2 = settings.get('crop_x2', self.crop_x2)
                     self.crop_y2 = settings.get('crop_y2', self.crop_y2)
                     self.detection_hold_frames = settings.get('detection_hold_frames', self.detection_hold_frames)
+                    self.flip_horizontal = settings.get('flip_horizontal', self.flip_horizontal)
+                    self.flip_vertical = settings.get('flip_vertical', self.flip_vertical)
                     
                     # Load model selection if saved
                     saved_model = settings.get('current_model', None)
@@ -608,7 +614,9 @@ class YOLODetectorOSC:
             'crop_x2': self.crop_x2,
             'crop_y2': self.crop_y2,
             'detection_hold_frames': self.detection_hold_frames,
-            'current_model': getattr(self, 'selected_model_key', 'yolov8n')
+            'current_model': getattr(self, 'selected_model_key', 'yolov8n'),
+            'flip_horizontal': self.flip_horizontal,
+            'flip_vertical': self.flip_vertical
         }
         try:
             with open(self.settings_file, 'w') as f:
@@ -889,6 +897,7 @@ class YOLODetectorOSC:
             f"  smoothing_alpha: {self.smoothing_alpha:.3f}  |  detection_hold_frames: {self.detection_hold_frames}",
             f"  frame_accumulation: {int(self.enable_accumulation)}  |  bg_subtract: {int(self.use_bg_subtraction)}",
             f"  show_enhanced: {int(self.show_enhanced)}  |  apply_enhancement_to_inference: {int(self.apply_enhancement_to_inference)}",
+            f"  flip_horizontal: {int(self.flip_horizontal)}  |  flip_vertical: {int(self.flip_vertical)}",
             "",
             "=== KEYBOARD SHORTCUTS ===",
             "",
@@ -908,6 +917,8 @@ class YOLODetectorOSC:
             "  + / - - Increase / Decrease manual gain",
             "  B - Toggle background subtraction",
             "  V / W - Adjust background subtraction learning rate",
+            "  H - Toggle horizontal flip",
+            "  F - Toggle vertical flip",
             "",
             "DETECTION:",
             "  U / I - Decrease / Increase process_every_n_frames (optimize speed)",
@@ -1012,7 +1023,15 @@ class YOLODetectorOSC:
                         print("Failed to read from camera")
                         break
                 
-                frame = cv2.flip(frame, 1)
+                # Apply flip based on settings
+                # flipCode: 0 = vertical, 1 = horizontal, -1 = both
+                if self.flip_horizontal and self.flip_vertical:
+                    frame = cv2.flip(frame, -1)  # Flip both axes
+                elif self.flip_horizontal:
+                    frame = cv2.flip(frame, 1)   # Flip horizontally
+                elif self.flip_vertical:
+                    frame = cv2.flip(frame, 0)   # Flip vertically
+                
                 display_frame = frame.copy()  # Copy for display
                 
                 if not self.paused:
@@ -1202,6 +1221,14 @@ class YOLODetectorOSC:
                     # Toggle applying enhancement to inference frame
                     self.apply_enhancement_to_inference = not self.apply_enhancement_to_inference
                     print(f"apply_enhancement_to_inference: {self.apply_enhancement_to_inference}")
+                elif key == ord('h'):
+                    # Toggle horizontal flip
+                    self.flip_horizontal = not self.flip_horizontal
+                    print(f"Flip horizontal: {self.flip_horizontal}")
+                elif key == ord('f'):
+                    # Toggle vertical flip
+                    self.flip_vertical = not self.flip_vertical
+                    print(f"Flip vertical: {self.flip_vertical}")
                 elif key == ord('u'): # Decrease processing frequency (process every more frames)
                     self.process_every_n_frames = min(self.process_every_n_frames + 1, 10)
                     print(f"Processing every {self.process_every_n_frames} frames")
