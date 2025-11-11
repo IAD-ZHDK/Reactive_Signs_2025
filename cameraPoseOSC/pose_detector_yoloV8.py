@@ -298,6 +298,10 @@ class YOLODetectorOSC:
         self.fps_start_time = time.time()
         self.current_fps = 0
         
+        # Flip settings (initialize before load_settings)
+        self.flip_horizontal = False  # Mirror the input horizontally
+        self.flip_vertical = False    # Mirror the input vertically
+        
         # Settings
         self.settings_file = "detector_settings.json"
         self.load_settings()
@@ -321,10 +325,6 @@ class YOLODetectorOSC:
         self.last_valid_point = None  # Last detected point
         self.frames_without_detection = 0  # Counter for frames without detection
         self.detection_hold_frames = 2  # Number of frames to hold last point (configurable, default=2)
-        
-        # Flip settings
-        self.flip_horizontal = False  # Mirror the input horizontally
-        self.flip_vertical = False    # Mirror the input vertically
 
     def update_smoothed_point(self, detected_point: Optional[Tuple[float, float, float]], tracking: bool) -> Tuple[float, float, float]:
         """Update and return smoothed normalized (x,y,z).
@@ -639,16 +639,13 @@ class YOLODetectorOSC:
             return
         
         if event == cv2.EVENT_LBUTTONDOWN:
-            # Scale mouse coordinates from display size back to actual frame size
-            # Display is 1280x720, frame is camera_width x camera_height
-            display_width = 1280
-            display_height = 720
-            scale_x = self.camera_width / display_width
-            scale_y = self.camera_height / display_height
+            # The window is resized to 1280x720 but the image keeps its original size
+            # OpenCV scales the mouse coordinates automatically to match the image size
+            # So we can use x, y directly without scaling
             
-            # Map display coordinates to frame coordinates
-            frame_x = int(x * scale_x)
-            frame_y = int(y * scale_y)
+            # Clamp coordinates to camera frame bounds
+            frame_x = max(0, min(x, self.camera_width - 1))
+            frame_y = max(0, min(y, self.camera_height - 1))
             
             if self.crop_click_count == 0:
                 # First click: set upper-left corner
