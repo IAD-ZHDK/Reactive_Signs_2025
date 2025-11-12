@@ -192,8 +192,8 @@ class YOLODetectorOSC:
         if self.use_websockets:
             # event loop for the websocket server thread will be stored here
             self.ws_loop = None
-            self.ws_thread = threading.Thread(target=self._run_ws_server)
-            self.ws_thread.daemon = True
+            self.ws_shutdown_event = threading.Event()
+            self.ws_thread = threading.Thread(target=self._run_ws_server, daemon=True)
             self.ws_thread.start()
             print(f"WebSocket server starting on ws://{osc_host}:{osc_port}")
         else:
@@ -644,6 +644,13 @@ class YOLODetectorOSC:
                     self.flip_horizontal = settings.get('flip_horizontal', self.flip_horizontal)
                     self.flip_vertical = settings.get('flip_vertical', self.flip_vertical)
                     
+                    # Load enhancement settings
+                    self.enable_enhancements = settings.get('enable_enhancements', self.enable_enhancements)
+                    self.brightness = settings.get('brightness', self.brightness)
+                    self.contrast = settings.get('contrast', self.contrast)
+                    self.saturation = settings.get('saturation', self.saturation)
+                    self.auto_enhance = settings.get('auto_enhance', self.auto_enhance)
+                    
                     # Load camera_id if saved
                     saved_camera_id = settings.get('camera_id', None)
                     if saved_camera_id is not None and saved_camera_id != self.camera_id:
@@ -710,7 +717,12 @@ class YOLODetectorOSC:
             'current_model': getattr(self, 'selected_model_key', 'yolov8n'),
             'flip_horizontal': self.flip_horizontal,
             'flip_vertical': self.flip_vertical,
-            'camera_id': self.camera_id
+            'camera_id': self.camera_id,
+            'enable_enhancements': self.enable_enhancements,
+            'brightness': self.brightness,
+            'contrast': self.contrast,
+            'saturation': self.saturation,
+            'auto_enhance': self.auto_enhance
         }
         try:
             with open(self.settings_file, 'w') as f:
@@ -802,7 +814,9 @@ class YOLODetectorOSC:
             self.ws_loop = asyncio.get_running_loop()
             # Do not require a specific subprotocol so clients that don't send one are accepted
             async with websockets.serve(handle_client, self.osc_host, self.osc_port, subprotocols=None):
-                await asyncio.Future()  # Run forever
+                # Wait for shutdown event instead of running forever
+                while not self.ws_shutdown_event.is_set():
+                    await asyncio.sleep(0.1)
 
         # Run the websocket server in this thread's event loop
         try:
@@ -810,7 +824,8 @@ class YOLODetectorOSC:
         except Exception as e:
             # If server fails to start, ensure ws_loop is cleared
             self.ws_loop = None
-            print(f"WebSocket server error: {e}")
+            if not self.ws_shutdown_event.is_set():
+                print(f"WebSocket server error: {e}")
 
     async def _broadcast_osc(self, message):
         """Broadcast OSC message to all connected clients"""
@@ -965,10 +980,22 @@ class YOLODetectorOSC:
     def cleanup(self):
         """Clean up resources"""
         print("Cleaning up...")
+        
+        # Shutdown WebSocket server gracefully
+        if self.use_websockets and hasattr(self, 'ws_shutdown_event'):
+            self.ws_shutdown_event.set()
+            if hasattr(self, 'ws_thread') and self.ws_thread.is_alive():
+                self.ws_thread.join(timeout=2.0)
+        
         self.save_settings()
-        self.cap.release()
-        cv2.destroyAllWindows()
-        # WebSocket cleanup handled by thread daemon status
+        
+        if hasattr(self, 'cap') and self.cap is not None:
+            self.cap.release()
+        
+        try:
+            cv2.destroyAllWindows()
+        except:
+            pass
     
     def load_model(self, model_name: str, weights_path: Optional[str] = None):
         """Load a new model dynamically"""
