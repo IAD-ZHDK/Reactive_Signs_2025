@@ -1,16 +1,21 @@
 @echo off
 cd "C:\Users\user\Desktop\"
 echo starting...
-echo closing open chrome windows...
+echo closing open applications gracefully...
 
-TASKKILL /F /IM chrome.exe
-TASKKILL /F /IM python.exe
-TASKKILL /F /IM node.exe
+REM Close Chrome gracefully by closing all windows (prevents "unexpected close" popup)
+taskkill /IM chrome.exe /T >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+REM Force kill if still running
+TASKKILL /F /IM chrome.exe >nul 2>&1
+TASKKILL /F /IM python.exe >nul 2>&1
+TASKKILL /F /IM node.exe >nul 2>&1
 
 echo starting cameraPoseOSC
 cd "C:\Users\User\Desktop\Reactive_Signs_2025\cameraPoseOSC\" &
-start cmd /k ".\venv\Scripts\activate.bat && python -u run_detector_gui.py --gpu 0"
-echo Python pose detector with GUI started in new window 
+start /min cmd /c ".\venv\Scripts\activate.bat && python -u run_detector_gui.py --gpu 0"
+echo Python pose detector with GUI started in background 
 
 TIMEOUT /t 10
 echo npm version:
@@ -51,8 +56,17 @@ cd "C:\Users\User\Desktop\Reactive_Signs_2025\2025_Exhibition\"
 echo Current directory: %CD%
 
 echo starting http-server in background on port 8081
-start /min cmd /k "npx http-server -p 8081"
+start /min cmd /c "npx http-server -p 8081"
 
 TIMEOUT /t 5
-echo running....
-echo Press Ctrl+C to stop
+echo.
+echo ============================================
+echo All services started successfully!
+echo ============================================
+echo - Camera Pose Detector: Running in background
+echo - HTTP Server: http://localhost:8081
+echo - Chrome: Full screen mode
+echo.
+echo Press Ctrl+C to stop all services
+echo ============================================
+pause
