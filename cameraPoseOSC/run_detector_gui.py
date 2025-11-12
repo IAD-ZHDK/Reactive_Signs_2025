@@ -14,10 +14,14 @@ def main():
     parser.add_argument('--camera', type=int, default=0, help='Camera ID (default: 0)')
     parser.add_argument('--gpu', type=int, default=None, help='GPU device ID (default: auto-detect)')
     parser.add_argument('--model', type=str, default='yolov8n.pt', help='Model file (default: yolov8n.pt)')
-    parser.add_argument('--host', type=str, default='127.0.0.1', help='OSC host (default: 127.0.0.1)')
-    parser.add_argument('--port', type=int, default=8080, help='OSC port (default: 8080)')
-    parser.add_argument('--websockets', action='store_true', help='Use WebSockets instead of UDP')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='OSC host (default: 0.0.0.0)')
+    parser.add_argument('--port', type=int, default=8025, help='OSC port (default: 8025)')
+    parser.add_argument('--websockets', action='store_true', default=True, help='Use WebSockets (default: True)')
+    parser.add_argument('--udp', action='store_true', help='Use UDP instead of WebSockets')
     args = parser.parse_args()
+    
+    # Handle UDP vs WebSockets flag
+    use_websockets = not args.udp if args.udp else args.websockets
     
     print("Starting detector with GUI...")
     print("Note: Close the camera window (press Q) to exit")
@@ -29,7 +33,7 @@ def main():
         model_name=args.model,
         osc_host=args.host,
         osc_port=args.port,
-        use_websockets=args.websockets
+        use_websockets=use_websockets
     )
     
     # Launch GUI in non-blocking mode
