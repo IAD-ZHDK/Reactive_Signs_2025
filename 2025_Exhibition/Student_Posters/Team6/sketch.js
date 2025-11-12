@@ -2,7 +2,6 @@
 let blobs = [];
 let backgroundBlobs = [];
 let blobCount = 600;
-let radius = 12;
 let stiffness = 0.03;
 let damping = 0.9;
 let mouseForce = 0.01;
@@ -33,18 +32,58 @@ function setupAllBLobs() {
   backgroundBlobs = [];
   numbers = [];
   // Generate blob patterns for numbers 9 to 0
+  let numberWithMostPoints = 9;
+  let MIN_POINTS = 2000;
+  let MAX_POINTS = 0;
+  let pointCounts = [];
+
   for (let i = 9; i >= 0; i--) {
     numbers[i] = createBlobPattern(i.toString(), poster.vw * 50, poster.vh * 50);
+    pointCounts.push(numbers[i].length);
+    if (numbers[i].length > MAX_POINTS) {
+      numberWithMostPoints = i;
+      MAX_POINTS = numbers[i].length;
+    }
+    if (numbers[i].length < MIN_POINTS) {
+      MIN_POINTS = numbers[i].length;
+    }
+    console.log(`Number ${i} has ${numbers[i].length} points.`);
+  }
+  let MEAN_POINTS = (MAX_POINTS + MIN_POINTS) / 2;
+  pointCounts.sort((a, b) => a - b);
+  let MEDIAN_POINTS = pointCounts[Math.floor(pointCounts.length / 2)];
+
+  console.log(`Max points: ${MAX_POINTS}, Min points: ${MIN_POINTS}, Mean points: ${MEAN_POINTS}, Median points: ${MEDIAN_POINTS}`);
+
+  for (let i = 9; i >= 0; i--) {
+
+    if (numbers[i].length > MEDIAN_POINTS) {
+      // reduce points
+      numbers[i] = numbers[i].sort(() => 0.5 - Math.random()).slice(0, MEDIAN_POINTS);
+    }
+    if (numbers[i].length <= MEDIAN_POINTS) {
+      // add points
+      for (let t = numbers[i].length; t < MAX_POINTS; t++) {
+        numbers[i].push(createVector(random(width), random(height), random(poster.vh * 0.5, poster.vh * 1.1)));
+      }
+      //numbers[i] = numbers[i].sort(() => 0.5 - Math.random()).slice(0, MIN_POINTS);
+    }
   }
 
-  // Initialize blobs for the first number
-  initializeBlobs(numbers[currentNumber]);
+
+  // Optional: Limit total number of points if needed
+
+
+
+  // Initialize blobs for the number with most points
+  initializeBlobs(numbers[9]);
+
 
   // Generate random background blobs
   for (let i = 0; i < blobCount; i++) {
     let randomX = random(poster.vw * 100);
     let randomY = random(poster.vh * 100);
-    let randomRadius = random(poster.vh * 1.5, poster.vh * 9);
+    let randomRadius = random(poster.vh * 3, poster.vh * 18);
 
     /*
 
@@ -56,10 +95,10 @@ function setupAllBLobs() {
       }
     }
       */
-    backgroundBlobs.push(new Blob(randomX, randomY, randomRadius, color(random(0), 30)));
-
-
+    backgroundBlobs.push(new Blob(randomX, randomY, randomRadius, color(random(10), 60)));
   }
+
+  console.log("background blobs created: " + backgroundBlobs.length);
 
 
 }
@@ -105,73 +144,96 @@ function draw() {
 }
 
 function createBlobPattern(txt, x, y) {
-  textSize(poster.vh * 90); //change font size
+  //textSize(poster.vh * 90); //change font size
+  let fontSize = 800; // this impacts the number of ponts, but not the visible size on screen
+  textSize(fontSize); //change font size
   bounds = font.textBounds(txt, x, y);
 
   // Start with a base sampleFactor
   let baseSampleFactor = 0.1;
 
+  let bbox = font.textBounds(txt, x, y);
+  //rect(bbox.x, bbox.y, bbox.w, bbox.h);
+
   // Custom sample factors for specific numbers
   let sampleFactors = {
     '0': 0.1,
     '1': 0.19,
-    '2': 0.13,
+    '2': 0.23,
     '3': 0.1,
     '4': 0.12,
     '5': 0.1,
     '6': 0.09,
     '7': 0.16,
     '8': 0.1,
-    '9': 0.13
+    '9': 0.12
   };
 
   // Use custom sample factor if defined, otherwise use base
   let sampleFactor = sampleFactors[txt] || baseSampleFactor;
 
-  let pts = font.textToPoints(txt, (poster.vw * 66.6) - (bounds.w / 4), (poster.vh * 20) + (bounds.h / 4), poster.vh * 90, {
+  let pts = font.textToPoints(txt, x, y, fontSize, {
     sampleFactor: sampleFactor,
-    simplifyThreshold: 0.0,
+    simplifyThreshold: 0.00,
   });
 
-  // Optional: Limit total number of points if needed
-  const MAX_POINTS = 900;
+  /*
   if (pts.length > MAX_POINTS) {
-    // Randomly sample points if we have too many
-    pts = pts.sort(() => 0.5 - Math.random()).slice(0, MAX_POINTS);
-  }
-
-  if (txt == "9") {
-    for (let i = 0; i < 50; i++) {
-      pts.push({ x: random(poster.vw * 100), y: random(poster.vh * 100) })
+      // Randomly sample points if we have too many
+      pts = pts.sort(() => 0.5 - Math.random()).slice(0, MAX_POINTS);
     }
-  }
+  */
+  // scale points to fit poster size based on bbox
+  // Use height-based scaling to maintain original proportions
+  let scale = (poster.vh * 100) / bbox.h * 0.7; // 70% of height
 
-  return pts.map((pt) => createVector(pt.x, pt.y));
+  pts = pts.map((pt) => {
+    return {
+      x: pt.x * scale,
+      y: pt.y * scale,
+    };
+  });
+
+  // move to center after scaling 
+  let offsetX = (poster.vw * 100 - bbox.w * scale) / 2 - bbox.x * scale;
+  let offsetY = (poster.vh * 100 - bbox.h * scale) / 2 - bbox.y * scale;
+
+  pts = pts.map((pt) => {
+    return {
+      x: pt.x + offsetX,
+      y: pt.y + offsetY,
+    };
+  });
+  return pts.map((pt) => createVector(pt.x, pt.y, random(poster.vh * 2, poster.vh * 4)));
 }
 
 function initializeBlobs(points) {
   blobs = [];
   for (let pt of points) {
-    let randomRadius = random(poster.vh, poster.vh * 2);
-    blobs.push(new Blob(pt.x, pt.y, randomRadius, color(random(200, 250), 150)));
+    // console.log(pt);
+    blobs.push(new Blob(pt.x, pt.y, pt.z, color(random(200, 250), 150)));
   }
 }
 
 function morphBlobs(current, next) {
   morphProgress = constrain(morphProgress + 0.2, 0, 1);
-
-  if (current.length !== next.length) {
-    // add random points to the shorter array
-    let maxLength = max(current.length, next.length);
-    for (let i = current.length; i < maxLength; i++) current.push(createVector(random(width), random(height)));
-    for (let i = next.length; i < maxLength; i++) next.push(createVector(random(width), random(height)));
-  }
-
+  /*
+    if (current.length !== next.length) {
+      // add random points to the shorter array
+      let maxLength = max(current.length, next.length);
+      for (let i = current.length; i < maxLength; i++) current.push(createVector(random(width), random(height)));
+      for (let i = next.length; i < maxLength; i++) next.push(createVector(random(width), random(height)));
+    }
+  */
   for (let i = 0; i < blobs.length; i++) {
-    let target = next[i] || createVector(random(width), random(height));
+    // Ensure current and next arrays have enough elements for all blobs
+    let currentPos = current[i] || createVector(random(width), random(height), random(poster.vh, poster.vh * 0.5));
+    let target = next[i] || createVector(random(width), random(height), random(poster.vh, poster.vh * 0.5));
+
     blobs[i].morphTo(
-      lerp(current[i].x, target.x, morphProgress),
-      lerp(current[i].y, target.y, morphProgress)
+      lerp(currentPos.x, target.x, morphProgress),
+      lerp(currentPos.y, target.y, morphProgress),
+      lerp(currentPos.z, target.z, morphProgress)
     );
   }
 }
@@ -190,8 +252,8 @@ class Blob {
     this.acceleration.add(force);
   }
 
-  morphTo(x, y) {
-    this.original.set(x, y);
+  morphTo(x, y, z) {
+    this.original.set(x, y, z);
   }
 
   update() {
@@ -221,7 +283,7 @@ class Blob {
   display() {
     fill(this.color);
     noStroke();
-    ellipse(this.current.x, this.current.y, this.radius * 2, this.radius * 2);
+    circle(this.current.x, this.current.y, this.radius);
   }
 }
 
@@ -230,4 +292,3 @@ function windowResized() { // this is a custom event called whenever the poster 
   setupAllBLobs()
   console.log("resized screen ")
 }
-  
