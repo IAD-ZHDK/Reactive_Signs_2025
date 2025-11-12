@@ -813,14 +813,33 @@ class YOLODetectorOSC:
             # capture the running loop so other threads can schedule coroutines on it
             self.ws_loop = asyncio.get_running_loop()
             # Do not require a specific subprotocol so clients that don't send one are accepted
-            async with websockets.serve(handle_client, self.osc_host, self.osc_port, subprotocols=None):
-                # Wait for shutdown event instead of running forever
-                while not self.ws_shutdown_event.is_set():
-                    await asyncio.sleep(0.1)
+            server = await websockets.serve(handle_client, self.osc_host, self.osc_port, subprotocols=None)
+            # Wait for shutdown event instead of running forever
+            while not self.ws_shutdown_event.is_set():
+                await asyncio.sleep(0.1)
+            # Close server gracefully
+            server.close()
+            await server.wait_closed()
 
         # Run the websocket server in this thread's event loop
+        # Use new_event_loop instead of asyncio.run to avoid Windows GIL issues
         try:
-            asyncio.run(serve())
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(serve())
+            finally:
+                # Clean up the loop properly
+                try:
+                    # Cancel all remaining tasks
+                    pending = asyncio.all_tasks(loop)
+                    for task in pending:
+                        task.cancel()
+                    # Wait for task cancellations
+                    if pending:
+                        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                finally:
+                    loop.close()
         except Exception as e:
             # If server fails to start, ensure ws_loop is cleared
             self.ws_loop = None
