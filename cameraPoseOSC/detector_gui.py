@@ -37,21 +37,16 @@ class DetectorGUI:
             self.font = ("Courier", 10)
             self.font_title = ("Courier", 12, "bold")
         
-        # Create scrollable frame
-        self.canvas = tk.Canvas(self.root, bg=self.bg_color, highlightthickness=0)
-        self.scrollbar = tk.Scrollbar(self.root, orient="vertical", command=self.canvas.yview)
-        self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
+        # Create main container without scrollbar
+        self.main_container = tk.Frame(self.root, bg=self.bg_color)
+        self.main_container.pack(fill="both", expand=True, padx=5, pady=5)
         
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
+        # Create two columns
+        self.left_column = tk.Frame(self.main_container, bg=self.bg_color)
+        self.left_column.pack(side="left", fill="both", expand=True, padx=5)
         
-        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
+        self.right_column = tk.Frame(self.main_container, bg=self.bg_color)
+        self.right_column.pack(side="left", fill="both", expand=True, padx=5)
         
         # Variables for live updates
         self.fps_var = tk.StringVar(value="FPS: --")
@@ -65,70 +60,74 @@ class DetectorGUI:
         self.update_values()
     
     def build_ui(self):
-        """Build the complete UI"""
-        frame = self.scrollable_frame
+        """Build the complete UI in two columns"""
+        # LEFT COLUMN
+        left = self.left_column
         
         # === SYSTEM INFO ===
-        self.create_section(frame, "SYSTEM INFO")
+        self.create_section(left, "SYSTEM INFO")
         
-        fps_label = tk.Label(frame, textvariable=self.fps_var, bg=self.bg_color, 
+        fps_label = tk.Label(left, textvariable=self.fps_var, bg=self.bg_color, 
                             fg=self.fg_color, font=self.font)
         fps_label.pack(pady=5, padx=10, fill="x")
         
-        device_label = tk.Label(frame, textvariable=self.device_var, bg=self.bg_color,
+        device_label = tk.Label(left, textvariable=self.device_var, bg=self.bg_color,
                                fg=self.fg_color, font=self.font)
         device_label.pack(pady=5, padx=10, fill="x")
         
-        model_label = tk.Label(frame, textvariable=self.model_var, bg=self.bg_color,
+        model_label = tk.Label(left, textvariable=self.model_var, bg=self.bg_color,
                               fg=self.fg_color, font=self.font)
         model_label.pack(pady=5, padx=10, fill="x")
         
         # === DISPLAY ===
-        self.create_section(frame, "DISPLAY")
-        self.create_toggle(frame, "Show Detections", "show_detections")
-        self.create_toggle(frame, "Draw Confidence", "draw_confidence")
+        self.create_section(left, "DISPLAY")
+        self.create_toggle(left, "Show Detections", "show_detections")
+        self.create_toggle(left, "Draw Confidence", "draw_confidence")
         
         # === IMAGE PROCESSING ===
-        self.create_section(frame, "IMAGE PROCESSING")
-        self.create_toggle(frame, "Enable Enhancements", "enable_enhancements")
-        self.create_toggle(frame, "Flip Horizontal", "flip_horizontal")
-        self.create_toggle(frame, "Flip Vertical", "flip_vertical")
-        self.create_toggle(frame, "Auto Enhance", "auto_enhance")
-        self.create_slider(frame, "Brightness", "brightness", 0.0, 2.0)
-        self.create_slider(frame, "Contrast", "contrast", 0.0, 2.0)
-        self.create_slider(frame, "Saturation", "saturation", 0.0, 2.0)
+        self.create_section(left, "IMAGE PROCESSING")
+        self.create_toggle(left, "Enable Enhancements", "enable_enhancements")
+        self.create_toggle(left, "Flip Horizontal", "flip_horizontal")
+        self.create_toggle(left, "Flip Vertical", "flip_vertical")
+        self.create_toggle(left, "Auto Enhance", "auto_enhance")
+        self.create_slider(left, "Brightness", "brightness", 0.0, 2.0)
+        self.create_slider(left, "Contrast", "contrast", 0.0, 2.0)
+        self.create_slider(left, "Saturation", "saturation", 0.0, 2.0)
         
         # === DETECTION ===
-        self.create_section(frame, "DETECTION")
-        self.create_slider(frame, "Confidence Threshold", "confidence_threshold", 0.0, 1.0)
+        self.create_section(left, "DETECTION")
+        self.create_slider(left, "Confidence Threshold", "confidence_threshold", 0.0, 1.0)
+        
+        # RIGHT COLUMN
+        right = self.right_column
         
         # === SMOOTHING ===
-        self.create_section(frame, "SMOOTHING")
-        self.create_slider(frame, "Smoothing Alpha", "smoothing_alpha", 0.0, 1.0)
-        self.create_slider(frame, "Hold Frames", "detection_hold_frames", 0, 30, step=1)  # Integer only
+        self.create_section(right, "SMOOTHING")
+        self.create_slider(right, "Smoothing Alpha", "smoothing_alpha", 0.0, 1.0)
+        self.create_slider(right, "Hold Frames", "detection_hold_frames", 0, 30, step=1)  # Integer only
         
         # === MODEL ===
-        self.create_section(frame, "MODEL")
+        self.create_section(right, "MODEL")
         models = ["yolov8n", "yolov8s", "yolov8l", "yolov9c", "yolov10n", "yolov10s", "exdark"]
         current_model = getattr(self.detector, 'selected_model_key', 'yolov8n')
-        self.create_dropdown(frame, "Model", models, self.on_model_change, initial_value=current_model)
-        self.create_slider(frame, "Inference Size", "inference_size", 160, 640, step=32)  # Integer only
+        self.create_dropdown(right, "Model", models, self.on_model_change, initial_value=current_model)
+        self.create_slider(right, "Inference Size", "inference_size", 160, 640, step=32)  # Integer only
         
         # === CAMERA ===
-        self.create_section(frame, "CAMERA")
+        self.create_section(right, "CAMERA")
         cameras = ["0", "1", "2", "3", "4"]  # Common camera indices
         current_camera = str(getattr(self.detector, 'camera_id', 0))
-        self.create_dropdown(frame, "Camera ID", cameras, self.on_camera_change, initial_value=current_camera)
-        self.create_button(frame, "Restart Camera", self.on_restart_camera)
+        self.create_dropdown(right, "Camera ID", cameras, self.on_camera_change, initial_value=current_camera)
+        self.create_button(right, "Restart Camera", self.on_restart_camera)
         
         # === SETTINGS ===
-        self.create_section(frame, "SETTINGS")
-        self.create_button(frame, "Save Settings", self.detector.save_settings)
+        self.create_section(right, "SETTINGS")
+        self.create_button(right, "Save Settings", self.detector.save_settings)
         
         # === GPU (if available) ===
         if hasattr(self.detector, 'device') and self.detector.device.startswith('cuda'):
-            self.create_section(frame, "GPU")
-            self.create_toggle(frame, "FP16 Precision", "use_fp16", 
+            self.create_section(right, "GPU")
+            self.create_toggle(right, "FP16 Precision", "use_fp16", 
                              callback=self.toggle_fp16)
     
     def create_section(self, parent, title):

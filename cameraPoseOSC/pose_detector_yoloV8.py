@@ -327,6 +327,10 @@ class YOLODetectorOSC:
         self.frames_without_detection = 0  # Counter for frames without detection
         self.detection_hold_frames = 2  # Number of frames to hold last point (configurable, default=2)
         
+        # Smoothed average point for stable output (normalized x,y,z)
+        self.smoothed_point = None
+        self.smoothing_alpha = 0.2  # base smoothing factor (0-1) - set before load_settings() as default
+        
         # Settings
         # Use absolute path to settings file in the same directory as this script
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -343,10 +347,12 @@ class YOLODetectorOSC:
         self.font_thickness_normal = 1  # Normal text
         self.font_outline_color = (0, 0, 0)  # Black outline for high contrast
         self.font_outline_thickness = 3  # Outline thickness in pixels
-
-        # Smoothed average point for stable output (normalized x,y,z)
-        self.smoothed_point = None
-        self.smoothing_alpha = 0.2  # base smoothing factor (0-1)
+        
+        # Camera freeze detection and auto-restart
+        self.last_frame_hash = None  # Hash of last frame to detect frozen camera
+        self.last_frame_change_time = time.time()  # Last time frame changed
+        self.camera_freeze_threshold = 20.0  # Seconds before considering camera frozen
+        self.camera_restart_in_progress = False  # Flag to prevent multiple restart attempts
         
         # Camera freeze detection and auto-restart
         self.last_frame_hash = None  # Hash of last frame to detect frozen camera
@@ -651,6 +657,13 @@ class YOLODetectorOSC:
                     self.saturation = settings.get('saturation', self.saturation)
                     self.auto_enhance = settings.get('auto_enhance', self.auto_enhance)
                     
+                    # Load detection and display settings
+                    self.smoothing_alpha = settings.get('smoothing_alpha', self.smoothing_alpha)
+                    self.confidence_threshold = settings.get('confidence_threshold', self.confidence_threshold)
+                    self.show_detections = settings.get('show_detections', self.show_detections)
+                    self.draw_confidence = settings.get('draw_confidence', self.draw_confidence)
+                    self.inference_size = settings.get('inference_size', self.inference_size)
+                    
                     # Load camera_id if saved
                     saved_camera_id = settings.get('camera_id', None)
                     if saved_camera_id is not None and saved_camera_id != self.camera_id:
@@ -722,7 +735,12 @@ class YOLODetectorOSC:
             'brightness': self.brightness,
             'contrast': self.contrast,
             'saturation': self.saturation,
-            'auto_enhance': self.auto_enhance
+            'auto_enhance': self.auto_enhance,
+            'smoothing_alpha': self.smoothing_alpha,
+            'confidence_threshold': self.confidence_threshold,
+            'show_detections': self.show_detections,
+            'draw_confidence': self.draw_confidence,
+            'inference_size': self.inference_size
         }
         try:
             with open(self.settings_file, 'w') as f:
