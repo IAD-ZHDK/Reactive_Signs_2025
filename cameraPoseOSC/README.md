@@ -1,169 +1,132 @@
-# Camera Pose Detection with OSC Output
+# Pose Detector with YOLO & OSC
 
-Cross-platform pose detection system using YOLO that sends pose data via OSC (UDP or WebSocket) in realSenseOSC compatible format.
+Real-time pose detection using YOLOv8 with WebSocket/UDP OSC output for interactive installations.
 
-## Features
+## Installation
 
-- **OSC **: Outputs in realSenseOSC format on `/depth` endpoint  
+```bash
+# macOS/Linux
+./setup.sh
 
-## Quick Start
+# Windows
+setup.bat
+```
 
-### macOS / Linux
+## Running
 
-1. **Setup environment:**
-   ```bash
-   ./setup.sh
-   ```
+### With GUI (Recommended)
 
-2. **Run pose detection:**
-   ```bash
-   # Virtual environment is auto-activated by setup.sh
-   python pose_detector_yoloV8.py
-   
-   # Or manually activate:
-   source venv/bin/activate
-   python pose_detector_yoloV8.py
-   ```
+**macOS/Linux:**
+```bash
+python run_detector_gui.py
+# or
+./start_gui.sh
+```
 
-### Windows
+**Windows:**
+```cmd
+start_gui.bat
+```
 
-1. **Prerequisites:**
-   - Python 3.9+ installed with "Add Python to PATH" checked
-   - Download from: https://www.python.org/downloads/
+This launches both the camera window and a greyscale control panel with toggles and sliders.
 
-2. **Setup environment:**
-   - Double-click `setup.bat` in File Explorer, OR
-   - Open Command Prompt in this folder and run:
-     ```cmd
-     setup.bat
-     ```
+### Without GUI (Keyboard controls only)
+```bash
+python pose_detector_yoloV8.py
+```
 
-3. **Run pose detection:**
-   ```cmd
-   # Option 1: Use the batch file (auto-activates virtual environment)
-   python pose_detector_yoloV8.py
-   
-   # Option 2: Manually activate virtual environment
-   venv\Scripts\activate.bat
-   python pose_detector_yoloV8.py
-   ```
-s
-4. **To deactivate virtual environment:**
-   ```cmd
-   deactivate
-   ```
-   
-   
+## GUI Controls
+
+**System Info**
+- Live FPS, device (CPU/GPU), and model name display
+
+**Display**
+- Draw Skeleton, Draw Confidence, Draw FPS toggles
+
+**Image Processing**
+- Flip Horizontal/Vertical, Auto Enhance
+- Brightness, Contrast, Saturation sliders (0.0-2.0)
+
+**Detection**
+- Confidence Threshold (0.0-1.0)
+- Min Detection Area (0.0-0.5)
+
+**Smoothing**
+- Enable/Disable smoothing
+- Smoothing Factor (0.0-1.0)
+- Hold Frames (0-30)
+
+**Model**
+- Dropdown: yolov8n, yolov8s, yolov8m, exdark
+- Inference Size (160-640, step 32)
+
+**Camera**
+- Restart Camera button
+- Reset Crop Area button
+
+**Settings**
+- Save Settings button (persists to JSON)
+
+**GPU** (if available)
+- FP16 Precision toggle
+
+## Keyboard Controls (GUI mode)
+
+- `Y` – Show performance diagnostics
+- `Q` – Quit application
+- `S` – Save settings
+
+## Keyboard Controls (No-GUI mode)
+
+- `H` – Flip horizontal
+- `F` – Flip vertical
+- `Z/N` – Switch camera input
+- `C` – Toggle crop mode
+- `D` – Toggle detections display
+- `R` – Reset crop
+- `E` – Toggle auto-enhance
+- `X` – Restart camera
+- `SPACE` – Pause/resume
+- `S` – Save settings
+- `Y` – Performance diagnostics
+- `Q` – Quit
+
 ## OSC Output Format
 
-The system sends OSC messages to `/depth` endpoint in realSenseOSC compatible format:
+```
+/pose {skeleton_data}  → WebSocket (ws://0.0.0.0:8025)
+              OR
+/pose {skeleton_data}  → UDP fallback (OSC format)
+```
 
-### WebSocket Mode (Default)
-- **URL**: `ws://localhost:8025`
-- **Protocol**: Binary OSC over WebSocket
-- **Message**: `/depth [width, height, depth_array, x, y, z, tracking]`
-
-### UDP Mode (Fallback)
-- **Host**: `127.0.0.1:8025` 
-- **Protocol**: Standard OSC over UDP
-- **Message**: `/depth [width, height, depth_array, x, y, z, tracking]`
-
-### Message Parameters
-- `width` (int): Crop area width
-- `height` (int): Crop area height  
-- `depth_array` (array): Empty array (pose detection has no depth data)
-- `x` (float): Normalized X position (0.0-1.0, flipped for realSense compatibility)
-- `y` (float): Normalized Y position (0.0-1.0)
-- `z` (float): Confidence score as depth value (0.0-1.0)
-- `tracking` (int): 1 if pose detected, 0 if not
-
-## Controls
-
-- **C**: Toggle crop area interface
-- **L**: Toggle landmark display
-- **R**: Reset crop area to full frame
-- **S**: Save current settings
-- **SPACE**: Pause/resume detection
-- **Q/ESC**: Quit application
+Default: UDP OSC on ports 8025 (output) / 8026 (input)
 
 ## Configuration
 
-Settings are saved in `pose_config.json`:
+Settings auto-save to `detector_settings.json`:
+- Model selection
+- Confidence threshold
+- Flip orientation
+- Smoothing parameters
+- All GUI slider values
 
-```json
-{
-  "osc": {
-    "host": "127.0.0.1",
-    "port": 8025,
-    "message_path": "/depth",
-    "use_websockets": true
-  },
-  "camera": {
-    "device_id": 0,
-    "fps": 30
-  }
-}
-```
-
-## Command Line Options
-
-```bash
-python pose_detector_yolov8.py [options]
-
-Options:
-  --osc-host HOST      OSC host address (default: 127.0.0.1)
-  --osc-port PORT      OSC port (default: 8025)
-  --camera ID          Camera device ID (default: 0)
-  --model MODEL        YOLO model (default: yolov8n-pose.pt)
-  --confidence CONF    Confidence threshold (default: 0.5)
-  --use-udp           Use UDP OSC instead of WebSocket
-  --no-camera         Disable camera preview window
-```
+Delete `detector_settings.json` to reset to defaults.
 
 ## Requirements
 
-- Python 3.9+ (YOLO compatible, Python 3.13+ supported)
-- Camera (webcam or external)
-- Network connection for model download (first run only)
+- Python 3.9+
+- OpenCV, PyTorch, Ultralytics YOLO
+- Tkinter (for GUI mode)
+- websockets (optional, uses UDP fallback)
+
+See `requirements.txt` for full dependency list.
 
 ## Troubleshooting
 
-### All Platforms
+**GUI not appearing?** Use `python run_detector_gui.py` (the proper launcher)
 
-**WebSocket connection failed:**
-- Ensure realSenseOSC or compatible server is running on port 8025
-- System will fallback to UDP OSC automatically
+**No camera?** Change `camera_id` in detector code or use different input source
 
-**Camera not found:**
-- Check camera device ID with `--camera` option
-- Try different device IDs (0, 1, 2, etc.)
+**Slow FPS?** Try smaller inference_size (e.g., 192) or switch to yolov8n model via GUI
 
-**Poor detection accuracy:**
-- Adjust confidence threshold with `--confidence`
-- Ensure good lighting and clear view of person
-- Use crop area (C key) to focus on specific region
-
-### Windows Specific
-
-**"Python not found" or "'python' is not recognized":**
-- Reinstall Python and ensure "Add Python to PATH" is checked during installation
-- Restart Command Prompt after installing Python
-- Or use `py --version` instead of `python --version`
-
-**Virtual environment activation fails:**
-- Try running Command Prompt as Administrator
-- Or manually install requirements:
-  ```cmd
-  python -m pip install -r requirements.txt
-  ```
-
-**Permission denied when running setup.bat:**
-- Right-click setup.bat → "Run as administrator"
-
-**ModuleNotFoundError: No module named 'cv2':**
-- Delete the `venv` folder and run `setup.bat` again
-- Or manually reinstall: `pip install opencv-python`
-
-**GPU/CUDA not detected:**
-- For GPU acceleration, install CUDA Toolkit from NVIDIA
-- Then: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`
+**Model loading errors?** Ensure `./exdark/best.pt` exists for exdark model

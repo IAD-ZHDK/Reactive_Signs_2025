@@ -9,8 +9,8 @@ TASKKILL /F /IM node.exe
 
 echo starting cameraPoseOSC
 cd "C:\Users\User\Desktop\Reactive_Signs_2025\cameraPoseOSC\" &
-start cmd /k ".\venv\Scripts\activate.bat && python -u pose_detector_yoloV8.py --gpu 0"
-echo Python pose detector started in new window 
+start cmd /k ".\venv\Scripts\activate.bat && python -u run_detector_gui.py --gpu 0"
+echo Python pose detector with GUI started in new window 
 
 TIMEOUT /t 10
 echo npm version:

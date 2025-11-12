@@ -70,7 +70,10 @@ echo.
 echo To activate the virtual environment manually:
 echo   venv\Scripts\activate.bat
 echo.
-echo To run pose detection:
+echo To run pose detection with GUI (recommended):
+echo   start_gui.bat
+echo.
+echo To run pose detection without GUI (keyboard controls only):
 echo   python pose_detector_yoloV8.py
 echo.
 echo To deactivate the virtual environment:

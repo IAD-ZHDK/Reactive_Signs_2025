@@ -170,10 +170,13 @@ class YOLODetectorOSC:
         # Initialize enhancement settings
         self.frame_buffer = deque(maxlen=3)
         self.enable_accumulation = False
-        self.auto_gain = True
+        self.auto_gain = False  # Disabled by default, can enable in GUI
         self.gain = 1.0
-        self.brightness = 0
-        self.contrast = 1.0
+        self.brightness = 1.0  # 1.0 = neutral (GUI range 0.0-2.0)
+        self.contrast = 1.0    # 1.0 = neutral (GUI range 0.0-2.0)
+        self.saturation = 1.0  # 1.0 = neutral (GUI range 0.0-2.0)
+        self.auto_enhance = False
+        self.enable_enhancements = True  # Master toggle to disable all enhancements
         self.show_enhanced = False
         # Whether to run the model on the enhanced frame (slower but may help in low light)
         self.apply_enhancement_to_inference = False
@@ -302,6 +305,7 @@ class YOLODetectorOSC:
         self.drag_start = (0, 0)
         self.show_crop_interface = False
         self.show_detections = True
+        self.draw_confidence = True  # Toggle for showing confidence values
         self.paused = False
         self.crop_click_count = 0  # For two-click crop mode (0, 1, or 2)
         self.current_model_name = model_name  # Track the displayed model name
@@ -525,11 +529,12 @@ class YOLODetectorOSC:
                 center_y = int((y1 + y2) / 2)
                 cv2.circle(image, (center_x, center_y), 4, (0, 0, 255), -1)
 
-                # Draw confidence and coordinates for debugging
-                self.draw_text_with_outline(image, f"conf: {conf:.2f}", (int(x1), int(y1) - 10),
-                            self.font, self.font_size_detail, (0, 255, 0), self.font_thickness_normal)
-                self.draw_text_with_outline(image, f"y: {int(y2-y1)}", (int(x1), int(y2) + 20),
-                            self.font, self.font_size_detail, (0, 255, 0), self.font_thickness_normal)
+                # Draw confidence and coordinates if enabled
+                if self.draw_confidence:
+                    self.draw_text_with_outline(image, f"conf: {conf:.2f}", (int(x1), int(y1) - 10),
+                                self.font, self.font_size_detail, (0, 255, 0), self.font_thickness_normal)
+                    self.draw_text_with_outline(image, f"y: {int(y2-y1)}", (int(x1), int(y2) + 20),
+                                self.font, self.font_size_detail, (0, 255, 0), self.font_thickness_normal)
                     
             
     def configure_camera_for_low_light(self):
@@ -560,6 +565,10 @@ class YOLODetectorOSC:
 
     def enhance_frame(self, frame, for_inference: bool = False):
         """Apply various enhancements to improve low-light performance"""
+        # If enhancements are disabled, return original frame
+        if not self.enable_enhancements:
+            return frame
+            
         # Convert to float32 for processing (keep in 0..1 range)
         frame_float = frame.astype(np.float32) / 255.0
 
@@ -572,11 +581,23 @@ class YOLODetectorOSC:
             accumulated = frame_float
 
         # Apply manual brightness/contrast in float domain
-        # contrast scales the values, brightness shifts the values (both in 0..1 domain)
-        enhanced_float = accumulated * self.contrast + (self.brightness / 255.0)
+        # Contrast: expand/compress around midpoint (0.5)
+        # Brightness: shift all values up/down
+        # Standard formula: output = contrast * (input - 0.5) + 0.5 + (brightness - 1.0)
+        enhanced_float = self.contrast * (accumulated - 0.5) + 0.5
+        enhanced_float = enhanced_float * self.brightness
+
+        # Apply saturation adjustment in HSV space
+        if self.saturation != 1.0:
+            # Convert to uint8 temporarily for HSV conversion
+            temp_uint8 = np.clip(enhanced_float * 255.0, 0, 255).astype(np.uint8)
+            hsv = cv2.cvtColor(temp_uint8, cv2.COLOR_BGR2HSV).astype(np.float32)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * self.saturation, 0, 255)
+            temp_uint8 = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+            enhanced_float = temp_uint8.astype(np.float32) / 255.0
 
         # Auto gain adjustment if enabled (operate on float image luminance)
-        if self.auto_gain:
+        if self.auto_gain or self.auto_enhance:
             # compute mean on luminance (convert to grayscale)
             mean_brightness = np.mean(cv2.cvtColor((np.clip(enhanced_float, 0, 1) * 255).astype(np.uint8), cv2.COLOR_BGR2GRAY) / 255.0)
             if mean_brightness < 0.4:  # Adjust threshold as needed
@@ -595,14 +616,16 @@ class YOLODetectorOSC:
             return enhanced_uint8
 
         # Optional: Apply adaptive histogram equalization on uint8 after gain for display only
-        try:
-            lab = cv2.cvtColor(enhanced_uint8, cv2.COLOR_BGR2LAB)
-            l, a, b = cv2.split(lab)
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-            l = clahe.apply(l)
-            enhanced_uint8 = cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2BGR)
-        except Exception:
-            # If CLAHE fails for any reason, fall back to the gain-applied result
+        if self.auto_enhance:
+            try:
+                lab = cv2.cvtColor(enhanced_uint8, cv2.COLOR_BGR2LAB)
+                l, a, b = cv2.split(lab)
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+                l = clahe.apply(l)
+                enhanced_uint8 = cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2BGR)
+            except Exception:
+                # If CLAHE fails for any reason, fall back to the gain-applied result
+                pass
             pass
 
         return enhanced_uint8
@@ -620,6 +643,15 @@ class YOLODetectorOSC:
                     self.detection_hold_frames = settings.get('detection_hold_frames', self.detection_hold_frames)
                     self.flip_horizontal = settings.get('flip_horizontal', self.flip_horizontal)
                     self.flip_vertical = settings.get('flip_vertical', self.flip_vertical)
+                    
+                    # Load camera_id if saved
+                    saved_camera_id = settings.get('camera_id', None)
+                    if saved_camera_id is not None and saved_camera_id != self.camera_id:
+                        print(f"Restoring saved camera ID: {saved_camera_id}")
+                        try:
+                            self.switch_camera(saved_camera_id)
+                        except Exception as e:
+                            print(f"Could not switch to saved camera {saved_camera_id}: {e}")
                     
                     # Load model selection if saved
                     saved_model = settings.get('current_model', None)
@@ -677,7 +709,8 @@ class YOLODetectorOSC:
             'detection_hold_frames': self.detection_hold_frames,
             'current_model': getattr(self, 'selected_model_key', 'yolov8n'),
             'flip_horizontal': self.flip_horizontal,
-            'flip_vertical': self.flip_vertical
+            'flip_vertical': self.flip_vertical,
+            'camera_id': self.camera_id
         }
         try:
             with open(self.settings_file, 'w') as f:
@@ -877,6 +910,18 @@ class YOLODetectorOSC:
         
         print("✓ Camera restart complete")
 
+    def reload_code(self):
+        """Press 'L' to reload code without restarting"""
+        import importlib
+        import sys
+        
+        # Reload the module
+        module_name = self.__class__.__module__
+        if module_name in sys.modules:
+            importlib.reload(sys.modules[module_name])
+            print("✓ Code reloaded!")
+
+
     def switch_camera(self, new_camera_id):
         """Switch to a different camera input"""
         if self.using_video_file:
@@ -988,7 +1033,48 @@ class YOLODetectorOSC:
             print(f"{'='*60}\n")
             return False
     
+    def switch_model(self, model_key: str):
+        """Switch to a different model by its key"""
+        if model_key not in AVAILABLE_MODELS:
+            print(f"✗ Unknown model: {model_key}")
+            return False
+        
+        model_info = AVAILABLE_MODELS[model_key]
+        model_file = model_info['file']
+        
+        # Special handling for exdark (needs to search for weights)
+        if model_key == 'exdark':
+            exdark_dir = os.path.expanduser('./exdark')
+            found = []
+            if os.path.exists(exdark_dir):
+                # Look for best.pt or last.pt first
+                for root, dirs, files in os.walk(exdark_dir):
+                    for f in files:
+                        if f.endswith('.pt') and ('best' in f.lower() or 'last' in f.lower()):
+                            found.append(os.path.join(root, f))
+            if not found and os.path.exists(exdark_dir):
+                # If not found, look for any .pt file
+                for root, dirs, files in os.walk(exdark_dir):
+                    for f in files:
+                        if f.endswith('.pt'):
+                            found.append(os.path.join(root, f))
+            if found:
+                # Sort: prefer 'best' over 'last'
+                found.sort(key=lambda p: (0 if 'best' in os.path.basename(p).lower() else 1, p))
+                model_file = found[0]
+            else:
+                print("✗ EXDark weights not found in ./exdark folder")
+                return False
+        
+        # Load the model
+        success = self.load_model(model_file)
+        if success:
+            self.selected_model_key = model_key
+            self.save_settings()
+        return success
+    
     def get_cropped_image(self, image):
+
         """Get the cropped portion of the image"""
         return image[self.crop_y1:self.crop_y2, self.crop_x1:self.crop_x2]
     
@@ -1127,32 +1213,34 @@ class YOLODetectorOSC:
             self.fps_counter = 0
             self.fps_start_time = current_time
 
-    def run(self):
+    def run(self, use_gui=False, headless=False, gui_instance=None):
         """Main processing loop"""
         print("Starting YOLO detection...")
-        print("Controls: C=crop toggle, D=detections toggle, R=reset crop, S=save, E=enhancement toggle, H/F=flip, X=restart camera, SPACE=pause, Q=quit")
+        
+        # GUI now runs separately via run_detector_gui.py
+        gui = gui_instance
+        
+        if not use_gui and not gui:
+            print("Controls: C=crop toggle, D=detections toggle, R=reset crop, S=save, E=enhancement toggle, H/F=flip, X=restart camera, SPACE=pause, Q=quit")
         
         window_name = 'YOLO Person Detection OSC'
-        controls_window_name = 'Controls & Shortcuts'
         
-        try:
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        except:
-            cv2.namedWindow(window_name)
+        # Don't create OpenCV window in headless mode (e.g., when GUI is on main thread)
+        if not headless:
+            try:
+                cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            except:
+                try:
+                    cv2.namedWindow(window_name)
+                except:
+                    headless = True  # Fall back to headless if window creation fails
             
-        # Force a consistent display size across platforms
-        display_width = 1280
-        display_height = 720
-        cv2.resizeWindow(window_name, display_width, display_height)
-
-        # Create controls window
-        try:
-            cv2.namedWindow(controls_window_name, cv2.WINDOW_NORMAL)
-        except:
-            cv2.namedWindow(controls_window_name)
-        cv2.resizeWindow(controls_window_name, 1200, 1600)
-
-        cv2.setMouseCallback(window_name, self.mouse_callback)
+            if not headless:
+                # Force a consistent display size across platforms
+                display_width = 1280
+                display_height = 720
+                cv2.resizeWindow(window_name, display_width, display_height)
+                cv2.setMouseCallback(window_name, self.mouse_callback)
         
         try:
             while True:
@@ -1214,10 +1302,9 @@ class YOLODetectorOSC:
                                 print(f"Background subtraction failed: {e}")
                         
                         if cropped_frame.size > 0:
-                            # If enhancement is to be applied to inference, run it on the full-size crop
-                            # This avoids mixing frame-buffer entries of different shapes and ensures
-                            # accumulation/gain are computed consistently.
-                            if self.apply_enhancement_to_inference:
+                            # Apply enhancements to inference if enabled
+                            # This helps model detect better in low-light or difficult conditions
+                            if self.enable_enhancements:
                                 try:
                                     enhanced_cropped = self.enhance_frame(cropped_frame, for_inference=True)
                                 except Exception:
@@ -1298,9 +1385,8 @@ class YOLODetectorOSC:
                             # Send OSC data using smoothed point
                             self.send_osc_data(smoothed, tracking)
                             
-                            # Apply image enhancements only to display frame if needed (do NOT use for inference)
-                            if self.show_enhanced:
-                                display_frame = self.enhance_frame(display_frame)
+                            # Apply image enhancements to display frame (controlled by enable_enhancements toggle)
+                            display_frame = self.enhance_frame(display_frame)
                             
                             # Draw detections on display frame
                             if self.show_detections:
@@ -1325,14 +1411,8 @@ class YOLODetectorOSC:
                 draw_t0 = time.time()
                 self.draw_ui(display_frame)
                 self.update_fps()
-                cv2.imshow(window_name, display_frame)
-                
-                # Create and display controls window (only update every 10 frames for performance)
-                self.controls_update_counter += 1
-                if self.controls_update_counter >= 10 or self.controls_image_cache is None:
-                    self.controls_image_cache = self.create_controls_image()
-                    self.controls_update_counter = 0
-                cv2.imshow(controls_window_name, self.controls_image_cache)
+                if not headless:
+                    cv2.imshow(window_name, display_frame)
                 
                 draw_t1 = time.time()
                 draw_time = draw_t1 - draw_t0
@@ -1355,16 +1435,26 @@ class YOLODetectorOSC:
                     self.timing_last_print = now
                 
                 key = cv2.waitKey(1) & 0xFF
+                
+                # Process GUI events if GUI is active
+                if gui:
+                    try:
+                        gui.root.update()
+                    except:
+                        gui = None  # GUI was closed
+                
                 if key == ord('q') or key == 27:  # Q or ESC
                     break
+                elif key == ord('s'):
+                    self.reload_code()
                 elif key == ord('c'):
                     self.show_crop_interface = not self.show_crop_interface
                 elif key == ord('d'):
                     self.show_detections = not self.show_detections
                 elif key == ord('r'):
                     self.reset_crop()
-                elif key == ord('s'):
-                    self.save_settings()
+                #elif key == ord('s'):
+                   # self.save_settings()
                 elif key == ord('y'):
                     # Print diagnostic info
                     print("\n" + "="*60)
@@ -1580,6 +1670,8 @@ class YOLODetectorOSC:
         except KeyboardInterrupt:
             print("\nInterrupted by user")
         finally:
+            if gui:
+                gui.destroy()
             self.cleanup()
 
 def ensure_model_available(model_file):
