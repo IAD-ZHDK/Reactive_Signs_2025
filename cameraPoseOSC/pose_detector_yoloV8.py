@@ -997,14 +997,21 @@ class YOLODetectorOSC:
         return True
 
     def cleanup(self):
-        """Clean up resources"""
+        """Clean up resources - safe to call multiple times"""
+        if hasattr(self, '_cleanup_done') and self._cleanup_done:
+            return  # Already cleaned up
+        
+        self._cleanup_done = True
         print("Cleaning up...")
         
-        # Shutdown WebSocket server gracefully
+        # Shutdown WebSocket server FIRST and WAIT for it to finish
         if self.use_websockets and hasattr(self, 'ws_shutdown_event'):
             self.ws_shutdown_event.set()
             if hasattr(self, 'ws_thread') and self.ws_thread.is_alive():
-                self.ws_thread.join(timeout=2.0)
+                print("Stopping WebSocket server...")
+                self.ws_thread.join(timeout=3.0)  # Increased timeout
+                if self.ws_thread.is_alive():
+                    print("Warning: WebSocket thread did not stop cleanly")
         
         self.save_settings()
         

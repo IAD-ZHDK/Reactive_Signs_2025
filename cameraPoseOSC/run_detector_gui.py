@@ -53,7 +53,16 @@ def main():
         detector.run(use_gui=False, headless=False, gui_instance=gui)
     except KeyboardInterrupt:
         print("\nShutting down...")
+    except Exception as e:
+        print(f"Error: {e}")
     finally:
+        # Clean up detector first (stops WebSocket server)
+        try:
+            detector.cleanup()
+        except:
+            pass
+        
+        # Then clean up GUI
         if gui:
             try:
                 gui.destroy()
