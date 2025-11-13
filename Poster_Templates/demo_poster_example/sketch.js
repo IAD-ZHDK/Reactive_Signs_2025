@@ -1,19 +1,18 @@
 
 let rotationHistory = [];
 let font;
-function preload() {  
+function preload() {
   // load the font
-  font = loadFont('/Poster_Templates/demo_poster_example/barlow_condensed.otf');  
+  font = loadFont('/Poster_Templates/demo_poster_example/barlow_condensed.otf');
 }
 function setup() {
-  createCanvas(100,100); // poster is resized automatically
-
+  createCanvas(100, 100); // poster is resized automatically
   textFont(font);
 }
 
 function draw() {
   background(0);
- console.log(width, height);
+  console.log(width, height);
   fill(255);
   wordEffect(poster.getCounter(), width / 2, height / 2);
 }
@@ -33,26 +32,26 @@ function wordEffect(word, x, y) {
   let maxSteps = 40;
   let maxSize = 600 * poster.vw
   let minSize = 80 * poster.vw
-  let stepSize = abs(maxSize- minSize) / maxSteps;
+  let stepSize = abs(maxSize - minSize) / maxSteps;
   let colorStep = (255 / maxSteps);
   textSize(minSize);
- // translate((-(bbox.x)/2)-(bbox.w/2), (-(bbox.y)/2)+(bbox.h/2));
+  // translate((-(bbox.x)/2)-(bbox.w/2), (-(bbox.y)/2)+(bbox.h/2));
 
   // the background letters 
   for (let i = 0; i < rotationHistory.length; i++) {
-    fill(colorStep*i);
-    push()  
-    
+    fill(colorStep * i);
+    push()
+
     rotate(rotationHistory[i].rotation);
-    size = maxSize-(stepSize*(i)) + Math.min(maxSize,minSize);
+    size = maxSize - (stepSize * (i)) + Math.min(maxSize, minSize);
     textSize(size);
     let bbox = font.textBounds(rotationHistory[i].char, 0, 0);
-    translate((-(bbox.x)/2)-(bbox.w/2), +(bbox.h/2));
+    translate((-(bbox.x) / 2) - (bbox.w / 2), +(bbox.h / 2));
     text(rotationHistory[i].char, 0, 0)
     pop();
   }
 
-  historyObject = {rotation: rotation, char: ""+word}
+  historyObject = { rotation: rotation, char: "" + word }
   rotationHistory.push(historyObject);
   pop();
   if (rotationHistory.length > maxSteps) {

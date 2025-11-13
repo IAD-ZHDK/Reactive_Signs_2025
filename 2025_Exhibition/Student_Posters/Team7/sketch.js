@@ -99,22 +99,26 @@ function setup() {
 }
 
 function draw() {
-    background(poster.getCounter() % 2 === 0 ? 255 : 0);
-
+    //  background(poster.getCounter() % 2 === 0 ? 255 : 0);
+    background(poster.getCounter() % 2 === 0 ? 0 : 255);
+    //ackground(255, 0, 0);
     /*blur logic*/
     viewerInteraction();
     drawingContext.save();
     drawingContext.filter = `blur(${blurAmount}px)`;
     displayNumbers();
     drawingContext.restore();
-
 }
 let incomingIndex = 0;
+let outgoingIndex = 0;
 function displayNumbers() {
     console.log(poster.getCounter())
 
-    let incomingIndex = (poster.getCounter() - 1 + images.length) % images.length;
-    let outgoingIndex = poster.getCounter();
+    if (incomingIndex !== poster.getCounter()) {
+        outgoingIndex = incomingIndex;
+        incomingIndex = poster.getCounter();
+    }
+
 
     outgoingImage = images[outgoingIndex];
     incomingImage = images[incomingIndex];
@@ -163,12 +167,11 @@ function displayNumbers() {
         }
 
         transitionOutScale = lerp(transitionOutScale, targetOutScale, easeInCubic(t));
-
         currentOutgoingAnchor.x = lerp(currentOutgoingAnchor.x, targetOutgoingAnchor.x, easeInCubic(t));
         currentOutgoingAnchor.y = lerp(currentOutgoingAnchor.y, targetOutgoingAnchor.y, easeInCubic(t));
     } else {
         console.log("done")
-        incomingIndex = outgoingIndex;
+        //incomingIndex = outgoingIndex;
     }
 
     push();
@@ -190,16 +193,6 @@ function displayNumbers() {
     }
     rotate(-incomingRotation);
     image(incomingImage, 0, 0, width * transitionInScale, (height / aspectRatio) * transitionInScale);
-    pop();
-}
-
-function displayDebugInfo() {
-    push();
-    blendMode(DIFFERENCE)
-    fill(255)
-    textSize(4.5 * poster.vw);
-    text(`${(poster.getCounter() - 1 + images.length) % images.length}   |   Blur: ${blurAmount.toFixed(1)}`, width / 1.55, height / 19)
-    blendMode(BLEND);
     pop();
 }
 

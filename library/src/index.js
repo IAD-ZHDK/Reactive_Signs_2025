@@ -49,16 +49,20 @@ function libraryInit() {
   try {
     const body = document.querySelector('body');
     const screenNumber = body.getAttribute('screen');
-    screenID = screenNumber;
+    if (isNaN(screenNumber) || screenNumber == null) {
+      screenID = 1;
+    } else {
+      screenID = screenNumber;
+    }
     //console.log("canvas index:", screenID);
     screenXoffset = true;
+
+    console.log("screenID: " + screenID);
   } catch (e) {
-    screenID = 0;
+    screenID = 1;
     screenXoffset = false;
+    console.log("no screen id  ");
   }
-
-  console.log("screenID: " + screenID);
-
 
 }
 
