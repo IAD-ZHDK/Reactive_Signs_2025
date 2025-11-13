@@ -2,6 +2,9 @@
 // - [x] Imagebuffer for halftone thing
 // - [ ] grainy blur --> pretty much needs shaders, https://editor.p5js.org/one-generated-pixel/sketches/zlzoJzRp__
 
+let incomingIndex = 0;
+let outgoingIndex = 0;
+
 let images = [];
 let aspectRatio = 1.375;
 
@@ -31,9 +34,9 @@ let originalViewerY
 let blurAmount
 
 let currentOutgoingAnchor = { x: 0.5, y: 0.5 };
-let currentIncomingAnchor = { x: 0, y: 0 };
-
-let totalDuration
+//let currentIncomingAnchor = { x: 0, y: 0 };
+let targetOutgoingAnchor = { x: 0.5, y: 0.5 };
+let totalDuration;
 let timePassed
 let timePassed2
 
@@ -96,9 +99,17 @@ function setup() {
 
     totalDuration = 0.6
     timePassed = 0
+    incomingIndex = poster.getCounter();
+    // if 0 then set to 9
+    if (incomingIndex === 0) {
+        outgoingIndex = 9;
+    } else {
+        outgoingIndex = incomingIndex - 1;
+    }
 }
 
 function draw() {
+    push()
     //  background(poster.getCounter() % 2 === 0 ? 255 : 0);
     background(poster.getCounter() % 2 === 0 ? 0 : 255);
     //ackground(255, 0, 0);
@@ -108,11 +119,11 @@ function draw() {
     drawingContext.filter = `blur(${blurAmount}px)`;
     displayNumbers();
     drawingContext.restore();
+    pop();
 }
-let incomingIndex = 0;
-let outgoingIndex = 0;
+
 function displayNumbers() {
-    console.log(poster.getCounter())
+    // console.log(poster.getCounter())
 
     if (incomingIndex !== poster.getCounter()) {
         outgoingIndex = incomingIndex;
@@ -123,7 +134,7 @@ function displayNumbers() {
     outgoingImage = images[outgoingIndex];
     incomingImage = images[incomingIndex];
 
-    let targetOutgoingAnchor = anchorPoints[outgoingIndex];
+    targetOutgoingAnchor = anchorPoints[outgoingIndex];
 
     if (poster.getCounter() !== previousCounter) {
         transitionInScale = 0;
@@ -133,8 +144,17 @@ function displayNumbers() {
 
         // incomingRotation = PI*1.5; 
         incomingRotation = PI / 4;
-        currentOutgoingAnchor.x = smallAnchorPoints[outgoingIndex].x;
-        currentOutgoingAnchor.y = smallAnchorPoints[outgoingIndex].y
+        try {
+            console.log("incoming index: " + incomingIndex);
+            console.log("outgoing index: " + outgoingIndex);
+            currentOutgoingAnchor.x = smallAnchorPoints[outgoingIndex].x;
+            currentOutgoingAnchor.y = smallAnchorPoints[outgoingIndex].y
+        } catch (e) {
+            console.log("error logging indices");
+            currentOutgoingAnchor.x = smallAnchorPoints[0].x;
+            currentOutgoingAnchor.y = smallAnchorPoints[0].y
+        }
+
 
         timePassed = 0
         previousCounter = poster.getCounter();
@@ -170,7 +190,7 @@ function displayNumbers() {
         currentOutgoingAnchor.x = lerp(currentOutgoingAnchor.x, targetOutgoingAnchor.x, easeInCubic(t));
         currentOutgoingAnchor.y = lerp(currentOutgoingAnchor.y, targetOutgoingAnchor.y, easeInCubic(t));
     } else {
-        console.log("done")
+        // console.log("done")
         //incomingIndex = outgoingIndex;
     }
 
@@ -208,12 +228,13 @@ function viewerInteraction() {
     const centerEnd = width / 1.5;
     //the max amount of blur with the realSense is about 85% of the max value --> 127.5
     if (mappedViewerX < centerStart) {
-        blurAmount = map(originalViewerX * width, 0, centerStart, 150, 0);
+        blurAmount = map(originalViewerX * width, 0, centerStart, 60, 0);
     } else if (originalViewerX * width > centerEnd) {
-        blurAmount = map(originalViewerX * width, centerEnd, width, 0, 150);
+        blurAmount = map(originalViewerX * width, centerEnd, width, 0, 60);
     } else {
         blurAmount = 0;
     }
+    rotate(poster.posNormal.x * 0.1 - 0.05);
 }
 
 
