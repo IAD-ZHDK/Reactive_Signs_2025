@@ -12,7 +12,7 @@ function preload() {
 }
 
 function setup() {
-  /*important!*/ createCanvas(100,100, WEBGL); // Don't remove this line. 
+  /*important!*/ createCanvas(100, 100, WEBGL); // Don't remove this line. 
 
     textFont(font)
     noStroke();
@@ -21,7 +21,7 @@ function setup() {
     // display one to load into memory buffer
     for (let i = 0; i < 10; i++) {
         model(digits[i]);
-      }
+    }
 }
 
 function draw() {
@@ -45,7 +45,9 @@ function drawNum(objModel) {
 
     // increase size if user is on either side
     let distanceFromCenter = abs(poster.posNormal.x - 0.5);
-    let scaleFactor = 15 + distanceFromCenter * 20;
+    // Scale relative to canvas size (use smaller dimension for consistency)
+    let baseScale = min(width, height) * 0.02;
+    let scaleFactor = baseScale + distanceFromCenter * 20;
     scale(scaleFactor);
 
     // rotate model to face viewer
