@@ -3,7 +3,7 @@ Templates for the 2025 module.
 
 The repository contains a number of basic examples in the Poster_Templates, together with a custom library for handling pose tracking and aspect ratio. Use the examples in the folder Poster_Templates to get started. 
 
-![Posters](/Raw/JT_Poster.gif?raw=true)| ![Posters](/Raw/RC_DS_Gif_Animation.gif?raw=true)         
+![Posters](/Raw/poster8.gif?raw=true)| ![Posters](/Raw/poster8.gif?raw=true)         
 :-------------------------------------:|:---------------------------------:
 
 ## Table of contents

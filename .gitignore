@@ -49,6 +49,7 @@ Thumbs.db
 
 # Editor
 .vscode/
+.vscode
 .idea/
 *.sublime-workspace
 *.sublime-project
@@ -67,4 +68,3 @@ build/
 *.bak
 *.swp
 *.tmp
-*.vscode
