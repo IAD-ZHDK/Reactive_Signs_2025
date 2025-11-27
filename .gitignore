@@ -67,3 +67,4 @@ build/
 *.bak
 *.swp
 *.tmp
+*.vscode
