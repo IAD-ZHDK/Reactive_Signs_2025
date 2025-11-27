@@ -27,38 +27,6 @@ Use getCounter to find the correct number to be displayed. For testing, use the 
     poster.getCounter() // the number that should be displayed
 ```
 
-
-#  Testing your code on the triple display
-
-The monitors and the computer have been setup to make testing as fast as possible.
-
-Let's say you want to test out the folder called "my_demo" in the Poster_Templates:
-
-```bash 
-│   ├── Poster_Templates
-│   │   ├── my_demo
-│   │   │   ├── index.html
-│   │   │   ├── sketch.js
-│   │   ├── demo_poster_3D
-│   │   ├── demo_poster_images
-│   │   ├── demo_poster_simple
-│   │   ├── demo_poster_depth
-│   │   ├── libraries
-│   │   ├── style.cs
-│
-
-```
-
-- Copy the "my_demo" folder to a USB thumb-drive, and rename the folder "Poster".
-- Turn on the Dual-Monitor PC if necessary 
-- Close any open program windows 
-
-- If "Poster" already exists on the desktop of the Dual-Monitor PC, delete it.
-- Don't delete or move anything else!
-- Move "Poster" to the desktop of the Dual-Monitor PC.
-- Click the "startPoster" icon on the desktop 
-- Your project should now run after a few seconds
-
 #  Recording Screen Capture 
 
 - Press Shift-R to start recording
