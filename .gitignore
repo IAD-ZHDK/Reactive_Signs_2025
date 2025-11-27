@@ -30,19 +30,6 @@ ENV/
 models/
 weights/
 
-# Video / media
-*.mp4
-*.mov
-*.avi
-*.mkv
-*.webm
-*.gif
-*.png
-*.jpg
-*.jpeg
-**/Videos/
-**/video/
-
 # OS files
 .DS_Store
 Thumbs.db
