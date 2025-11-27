@@ -203,7 +203,7 @@ function setup() {
 }
 
 function draw() {
-  background(255)
+  background(0)
   strokeCap(ROUND);
   textAlign(CENTER)
 
@@ -310,40 +310,38 @@ function draw() {
 
   //defining style slider
   //style slider movement
-
-  textEndXPos = -190 * poster.vw
-  textYPos = 19.6 * poster.vh
-  textSize(5 * poster.vh)
-  fill(0)
-
-  if (poster.position.x > 0 * poster.vw && poster.position.x < 10 * poster.vw) {
-    textStartXPosTarget = 266 * poster.vw
-  } else if (poster.position.x > 10 * poster.vw && poster.position.x < 20 * poster.vw) {
-    textStartXPosTarget = 216.8 * poster.vw
-  } else if (poster.position.x > 20 * poster.vw && poster.position.x < 30 * poster.vw) {
-    textStartXPosTarget = 166.3 * poster.vw
-  } else if (poster.position.x > 30 * poster.vw && poster.position.x < 40 * poster.vw) {
-    textStartXPosTarget = 116 * poster.vw
-  } else if (poster.position.x > 40 * poster.vw && poster.position.x < 50 * poster.vw) {
-    textStartXPosTarget = 65.5 * poster.vw
-  } else if (poster.position.x > 50 * poster.vw && poster.position.x < 60 * poster.vw) {
-    textStartXPosTarget = 15 * poster.vw
-  } else if (poster.position.x > 60 * poster.vw && poster.position.x < 70 * poster.vw) {
-    textStartXPosTarget = -35.6 * poster.vw
-  } else if (poster.position.x > 70 * poster.vw && poster.position.x < 80 * poster.vw) {
-    textStartXPosTarget = -86.1 * poster.vw
-  } else if (poster.position.x > 80 * poster.vw && poster.position.x < 90 * poster.vw) {
-    textStartXPosTarget = -136.6 * poster.vw
-  } else if (poster.position.x > 90 * poster.vw && poster.position.x < 100 * poster.vw) {
-    textStartXPosTarget = -187 * poster.vw
-  }
-
-  let difference = (textStartXPosTarget - textStartXPos) * 0.05;
-  textStartXPos += difference;
-  //console.log("difference" + difference)
-  //console.log("textStartXPos_" + textStartXPos)
-  //console.log("textStartXPosTarget_" + textStartXPosTarget)
-  text(StyleSelector.join(""), textStartXPos, textYPos)
+  /*
+    textEndXPos = -190 * poster.vw
+    textYPos = 19.6 * poster.vh
+    textSize(5 * poster.vh)
+    fill(0)
+  
+    if (poster.position.x > 0 * poster.vw && poster.position.x < 10 * poster.vw) {
+      textStartXPosTarget = 266 * poster.vw
+    } else if (poster.position.x > 10 * poster.vw && poster.position.x < 20 * poster.vw) {
+      textStartXPosTarget = 216.8 * poster.vw
+    } else if (poster.position.x > 20 * poster.vw && poster.position.x < 30 * poster.vw) {
+      textStartXPosTarget = 166.3 * poster.vw
+    } else if (poster.position.x > 30 * poster.vw && poster.position.x < 40 * poster.vw) {
+      textStartXPosTarget = 116 * poster.vw
+    } else if (poster.position.x > 40 * poster.vw && poster.position.x < 50 * poster.vw) {
+      textStartXPosTarget = 65.5 * poster.vw
+    } else if (poster.position.x > 50 * poster.vw && poster.position.x < 60 * poster.vw) {
+      textStartXPosTarget = 15 * poster.vw
+    } else if (poster.position.x > 60 * poster.vw && poster.position.x < 70 * poster.vw) {
+      textStartXPosTarget = -35.6 * poster.vw
+    } else if (poster.position.x > 70 * poster.vw && poster.position.x < 80 * poster.vw) {
+      textStartXPosTarget = -86.1 * poster.vw
+    } else if (poster.position.x > 80 * poster.vw && poster.position.x < 90 * poster.vw) {
+      textStartXPosTarget = -136.6 * poster.vw
+    } else if (poster.position.x > 90 * poster.vw && poster.position.x < 100 * poster.vw) {
+      textStartXPosTarget = -187 * poster.vw
+    }
+  
+    let difference = (textStartXPosTarget - textStartXPos) * 0.05;
+    textStartXPos += difference;
+    text(StyleSelector.join(""), textStartXPos, textYPos)
+    */
   pop()
 }
 

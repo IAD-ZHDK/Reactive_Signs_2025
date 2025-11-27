@@ -191,7 +191,7 @@ function draw() {
   ambientMaterial(255, 255, 255);
 
   state = poster.getCounter();
-  console.log("state:", state);
+  //console.log("state:", state);
   /*let isoX = 0;
   let isoY = 0;
   let isoZ = 500;

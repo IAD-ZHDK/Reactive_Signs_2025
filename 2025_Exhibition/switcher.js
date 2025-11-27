@@ -1,20 +1,21 @@
 let parent = 'Student_Posters/'
 let indexFile = '/index.html'
-let posters = ['Team1', 'Team2', 'Team3', 'Team4', 'Team5', 'Team6', 'Team7']
+let posters = ['Team1', 'Team2', 'Team3', 'Team5', 'Team6', 'Team7', 'Team8']
 let defaultPoster = 'PosterDefault';
 // not used: 
 let currentPoster = 0;
-let intervalPosterChange = 240000; //4 minutes 
-let intervalCountDown = 1000; //
+let durationAt150 = 120000; //2 minutes
+let intervalCount = 1200; // 1300 
 let trackingActive = false;
 let streaming = false;
 let demoMode = false
 let incrementCounterInterval;
 let frames = []
 let noFrames = 3;
-let myInterval;
+let intervalAt150;
 let countInterval;
 let count = 0;
+let countDirection = 1;
 // event when page is finished loading
 
 window.onload = function () {
@@ -26,8 +27,8 @@ window.onload = function () {
     adjustContainerSize();
   });
   // incrementCounterInterval = setInterval(incrementCounterDown, 2000); // Call incrementCounter every 1000 milliseconds (1 second)
-  countInterval = setInterval(countHandler, intervalCountDown);
-  myInterval = setInterval(intervalHandler, intervalPosterChange);
+  countInterval = setInterval(countHandler, intervalCount);
+
 }
 
 function adjustContainerSize() {
@@ -193,12 +194,12 @@ function pickPoster(number) {
   // for keyboard selection during testing
   if (number < posters.length && number >= 0) {
     console.log("poster no: " + number)
-    transition(number)
+    fadeOutAllPosters(number)
   }
 }
 
-function transition(posterNo) {
-  console.log("try transition animation")
+function fadeOutAllPosters(posterNo) {
+  console.log("try fadeOutAllPosters animation")
   try {
 
     for (var i = 0; i < noFrames; i++) {
@@ -208,18 +209,23 @@ function transition(posterNo) {
     }
 
   } catch (e) {
-    console.log("transition failed " + e)
+    console.log("fadeOutAllPosters failed " + e)
   }
 }
 
 
 
-function intervalHandler() {
-  // console.log("streaming" + streaming + ", trackingActive" + trackingActive);
-  //if (!trackingActive && streaming) {
-  clearInterval(myInterval);
-  myInterval = setInterval(intervalHandler, intervalPosterChange)
+function beginCountDown() {
+  clearInterval(intervalAt150);
+  // intervalAt150 = setInterval(beginCountDown, durationAt150)
+  countDirection = -1;
+  clearInterval(countInterval);
+  countInterval = setInterval(countHandler, intervalCount)
+  //nextPoster()
+}
 
+function nextPoster() {
+  console.log("nextPoster called")
   if (currentPoster < posters.length - 1) {
     currentPoster++;
   } else {
@@ -228,15 +234,25 @@ function intervalHandler() {
   pickPoster(currentPoster)
 }
 
+
 function countHandler() {
   // console.log("streaming" + streaming + ", trackingActive" + trackingActive);
-  //if (!trackingActive && streaming) {
-  count++;
+  count += countDirection;
   if (count > 150) {
     count = 150;
+    clearInterval(countInterval);
+    intervalAt150 = setInterval(beginCountDown, durationAt150);
+    return;
+  } else if (count < 0) {
+    count = 0;
+    //transition to next poster 
+    nextPoster();
+    countDirection = 1;
+    clearInterval(countInterval);
+    return;
   }
   clearInterval(countInterval);
-  countInterval = setInterval(countHandler, intervalCountDown)
+  countInterval = setInterval(countHandler, intervalCount)
 
   // count needs to be three digits from 000 to 150
   let countString = count.toString().padStart(3, '0');
@@ -253,7 +269,6 @@ function countHandler() {
       console.log("error setting body id: " + e)
     }
   }
-
 }
 
 function fadeOut(el, nextPosterNo) {
@@ -274,6 +289,9 @@ function fadeOut(el, nextPosterNo) {
 }
 
 function fadeIn(el) {
+  clearInterval(countInterval);
+  countInterval = setInterval(countHandler, intervalCount);
+
   let duration = 1000; // Animation duration in milliseconds.
   var step = 10 / duration,
     opacity = 0;
