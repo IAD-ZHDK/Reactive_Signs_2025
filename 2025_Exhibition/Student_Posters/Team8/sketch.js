@@ -12,10 +12,11 @@ let nineInflated, nineDeflated;
 let morphAmount = 0;
 let morphOffset = 0;
 let lastNumber = 99;
-let cachedVertices = [];
-let cachedNormals = [];
-let cachedUVs = [];
+let cachedVertices = null; // Float32Array (vlen * 3)
+let cachedNormals = null;  // Float32Array (vlen * 3)
+let cachedUVs = null;      // Float32Array (vlen * 2)
 let lastMorphAmount = -1;
+let lastModelSet = null;
 
 let environmentTexture;
 
@@ -30,6 +31,7 @@ const WIGGLE_AMP = 0.02; // max amplitude of vertex wobble (adapt to your model 
 const WIGGLE_SPEED = 0.0015; // temporal speed (ms based)
 const WIGGLE_FREQ = 0.6; // spatial frequency (how different adjacent vertices are)
 // ----------------------------------
+
 
 let pg;
 
@@ -82,10 +84,24 @@ function setup() {
   pg.background(0, 0, 0);
   texture(pg);
 }
+function drawTest() {
+  push()
+  imageLight(environmentTexture);
+  shininess(300);
+  metalness(100);
+  background(100);
+  scale(6.5 * poster.vh);
+  rotateX(HALF_PI);
+  rotateY(PI);
+  rotateZ(PI + sin(millis() * 0.001) * 0.05);
+  model(zeroDeflated);
+
+  pop();
+}
 
 function draw() {
   background(0);
-  currentModelSet = poster.getCounter();
+
 
   if (millis() - lastSwitchTime > 1000) {
     morphOffset += 0.25 / width;
@@ -109,40 +125,40 @@ function draw() {
   push();
   rotateX(HALF_PI);
   rotateY(PI);
-  rotateZ(PI + sin(millis() * 0.001) * 0.10);
-  scale(5 * poster.vh);
+  rotateZ(PI + sin(millis() * 0.001) * 0.05);
+  scale(6.5 * poster.vh);
 
-
+  currentModelSet = poster.getCounter();
   switch (currentModelSet) {
     case 0:
-      renderMorphedModel(zeroDeflated, zeroInflated, morphAmount);
+      renderMorphedModel(zeroDeflated, zeroInflated, morphAmount, currentModelSet);
       break;
     case 1:
-      renderMorphedModel(oneDeflated, oneInflated, morphAmount);
+      renderMorphedModel(oneDeflated, oneInflated, morphAmount, currentModelSet);
       break;
     case 2:
-      renderMorphedModel(twoDeflated, twoInflated, morphAmount);
+      renderMorphedModel(twoDeflated, twoInflated, morphAmount, currentModelSet);
       break;
     case 3:
-      renderMorphedModel(threeDeflated, threeInflated, morphAmount);
+      renderMorphedModel(threeDeflated, threeInflated, morphAmount, currentModelSet);
       break;
     case 4:
-      renderMorphedModel(fourDeflated, fourInflated, morphAmount);
+      renderMorphedModel(fourDeflated, fourInflated, morphAmount, currentModelSet);
       break;
     case 5:
-      renderMorphedModel(fiveDeflated, fiveInflated, morphAmount);
+      renderMorphedModel(fiveDeflated, fiveInflated, morphAmount, currentModelSet);
       break;
     case 6:
-      renderMorphedModel(sixDeflated, sixInflated, morphAmount);
+      renderMorphedModel(sixDeflated, sixInflated, morphAmount, currentModelSet);
       break;
     case 7:
-      renderMorphedModel(sevenDeflated, sevenInflated, morphAmount);
+      renderMorphedModel(sevenDeflated, sevenInflated, morphAmount, currentModelSet);
       break;
     case 8:
-      renderMorphedModel(eightDeflated, eightInflated, morphAmount);
+      renderMorphedModel(eightDeflated, eightInflated, morphAmount, currentModelSet);
       break;
     case 9:
-      renderMorphedModel(nineDeflated, nineInflated, morphAmount);
+      renderMorphedModel(nineDeflated, nineInflated, morphAmount, currentModelSet);
       break;
     default:
       console.error("Unbekanntes Modell-Set:", currentModelSet);
@@ -151,7 +167,7 @@ function draw() {
   pop();
 }
 
-function renderMorphedModel(modelA, modelB, morphAmount) {
+function renderMorphedModel(modelA, modelB, morphAmount, modelSet) {
   if (
     !modelA ||
     !modelB ||
@@ -181,43 +197,51 @@ function renderMorphedModel(modelA, modelB, morphAmount) {
   }
 
   // Recompute cache only when morphAmount changes
-  if (morphAmount !== lastMorphAmount || poster.getCounter() !== lastNumber) {
+  if (morphAmount !== lastMorphAmount || modelSet !== lastModelSet) {
+    lastModelSet = modelSet;
 
-    lastNumber = poster.getCounter();
+    const vlen = verticesA.length;
+    cachedVertices = new Float32Array(vlen * 3);
+    cachedNormals = new Float32Array(vlen * 3);
+    cachedUVs = new Float32Array(vlen * 2);
 
-    cachedVertices = new Array(verticesA.length);
-    cachedNormals = new Array(verticesA.length);
-    cachedUVs = new Array(verticesA.length);
-
-    for (let i = 0; i < verticesA.length; i++) {
+    for (let i = 0; i < vlen; i++) {
       const vA = verticesA[i];
       const vB = verticesB[i];
 
       const vx = lerp(vA.x, vB.x, morphAmount);
       const vy = lerp(vA.y, vB.y, morphAmount);
       const vz = lerp(vA.z, vB.z, morphAmount);
-      cachedVertices[i] = { x: vx, y: vy, z: vz };
+      const b3 = i * 3;
+      cachedVertices[b3] = vx;
+      cachedVertices[b3 + 1] = vy;
+      cachedVertices[b3 + 2] = vz;
 
       if (normalsA[i] && normalsB[i]) {
         let nx = lerp(normalsA[i].x, normalsB[i].x, morphAmount);
         let ny = lerp(normalsA[i].y, normalsB[i].y, morphAmount);
         let nz = lerp(normalsA[i].z, normalsB[i].z, morphAmount);
         const invLen = 1 / Math.hypot(nx, ny, nz);
-        cachedNormals[i] = { x: nx * invLen, y: ny * invLen, z: nz * invLen };
+        cachedNormals[b3] = nx * invLen;
+        cachedNormals[b3 + 1] = ny * invLen;
+        cachedNormals[b3 + 2] = nz * invLen;
       } else {
         const invLen = 1 / Math.max(Math.hypot(vx, vy, vz), 1e-6);
-        cachedNormals[i] = { x: vx * invLen, y: vy * invLen, z: vz * invLen };
+        cachedNormals[b3] = vx * invLen;
+        cachedNormals[b3 + 1] = vy * invLen;
+        cachedNormals[b3 + 2] = vz * invLen;
       }
 
+      const b2 = i * 2;
       if (hasUVs) {
         const uA = uvsA[i];
         const uB = uvsB[i];
-        cachedUVs[i] = [
-          lerp(uA.x, uB.x, morphAmount),
-          lerp(uA.y, uB.y, morphAmount),
-        ];
+        cachedUVs[b2] = lerp(uA.x, uB.x, morphAmount);
+        cachedUVs[b2 + 1] = lerp(uA.y, uB.y, morphAmount);
       } else {
-        cachedUVs[i] = sphericalUV(vx, vy, vz);
+        const uv = sphericalUV(vx, vy, vz);
+        cachedUVs[b2] = uv[0];
+        cachedUVs[b2 + 1] = uv[1];
       }
     }
 
@@ -235,15 +259,19 @@ function renderMorphedModel(modelA, modelB, morphAmount) {
 
     for (let j = 0; j < 3; j++) {
       const idx = face[j];
-      const v = cachedVertices[idx];
-      const n = cachedNormals[idx];
-      const uv = cachedUVs[idx];
+      const b3 = idx * 3;
+      const b2 = idx * 2;
 
-      if (!v) continue;
+      const vx = cachedVertices[b3];
+      const vy = cachedVertices[b3 + 1];
+      const vz = cachedVertices[b3 + 2];
+      const nx = cachedNormals[b3];
+      const ny = cachedNormals[b3 + 1];
+      const nz = cachedNormals[b3 + 2];
+      const u = cachedUVs[b2];
+      const vv = cachedUVs[b2 + 1];
 
-      let vx = v.x,
-        vy = v.y,
-        vz = v.z;
+      if (vx === undefined) continue;
       /*
             if (deflatedWeight > 0) {
               // noise returns [0..1], map to [-1..1]
@@ -253,8 +281,8 @@ function renderMorphedModel(modelA, modelB, morphAmount) {
               vz += n.z * disp;
             }
       */
-      normal(n.x, n.y, n.z);
-      vertex(vx, vy, vz, uv[0], uv[1]);
+      normal(nx, ny, nz);
+      vertex(vx, vy, vz, u, vv);
     }
   }
   endShape();

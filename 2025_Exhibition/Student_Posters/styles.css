@@ -9,7 +9,7 @@ body {
   width: 100%;
   cursor: none;
   display: flex;
-  1 justify-content: center;
+  justify-content: center;
   /* Center horizontally */
   align-items: center;
   /* Center vertically if needed */
