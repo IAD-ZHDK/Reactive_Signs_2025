@@ -115,7 +115,7 @@ function draw() {
   rotateX(HALF_PI);
   rotateY(PI);
   rotateZ(PI + sin(millis() * 0.001) * 0.05);
-  scale(6.5 * poster.vh);
+  scale(5.5 * poster.vh);
 
   currentModelSet = poster.getCounter();
   switch (currentModelSet) {
