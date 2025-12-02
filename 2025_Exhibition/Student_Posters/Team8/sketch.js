@@ -17,6 +17,10 @@ let cachedNormals = null;  // Float32Array (vlen * 3)
 let cachedUVs = null;      // Float32Array (vlen * 2)
 let lastMorphAmount = -1;
 let lastModelSet = null;
+let precomputedSphericalUVs = null; // Float32Array (vlen * 2) cached per modelSet
+let precomputedSphericalUVsModelSet = null;
+let precomputedFacing = null; // Uint8Array (vlen) 1 = front-facing, 0 = back-facing
+let precomputedFacingModelSet = null;
 
 let environmentTexture;
 
@@ -84,24 +88,9 @@ function setup() {
   pg.background(0, 0, 0);
   texture(pg);
 }
-function drawTest() {
-  push()
-  imageLight(environmentTexture);
-  shininess(300);
-  metalness(100);
-  background(100);
-  scale(6.5 * poster.vh);
-  rotateX(HALF_PI);
-  rotateY(PI);
-  rotateZ(PI + sin(millis() * 0.001) * 0.05);
-  model(zeroDeflated);
-
-  pop();
-}
 
 function draw() {
   background(0);
-
 
   if (millis() - lastSwitchTime > 1000) {
     morphOffset += 0.25 / width;
@@ -205,6 +194,64 @@ function renderMorphedModel(modelA, modelB, morphAmount, modelSet) {
     cachedNormals = new Float32Array(vlen * 3);
     cachedUVs = new Float32Array(vlen * 2);
 
+    // Precompute spherical UVs once per model set when models don't provide UVs.
+    if (!hasUVs && modelSet !== precomputedSphericalUVsModelSet) {
+      precomputedSphericalUVs = new Float32Array(vlen * 2);
+      for (let k = 0; k < vlen; k++) {
+        const va = verticesA[k];
+        const uv = sphericalUV(va.x, va.y, va.z);
+        const bb = k * 2;
+        precomputedSphericalUVs[bb] = uv[0];
+        precomputedSphericalUVs[bb + 1] = uv[1];
+      }
+      precomputedSphericalUVsModelSet = modelSet;
+    }
+
+    // Precompute facing mask (front/back) once per model set (uses the current model rotation state).
+    // We'll transform the vertex normal by the same rotations applied in draw() and test its Z component.
+    if (modelSet !== precomputedFacingModelSet) {
+      precomputedFacing = new Uint8Array(vlen);
+      // rotation used in draw(): rotateX(HALF_PI); rotateY(PI); rotateZ(PI + sin(millis() * 0.001) * 0.05);
+      const rotX = HALF_PI;
+      const rotY = PI;
+      const rotZ = PI;
+      const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+      const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+      const cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ);
+
+      for (let k = 0; k < vlen; k++) {
+        let nx, ny, nz;
+        if (normalsA[k]) {
+          nx = normalsA[k].x;
+          ny = normalsA[k].y;
+          nz = normalsA[k].z;
+        } else {
+          // fallback: use vertex direction
+          const va = verticesA[k];
+          nx = va.x;
+          ny = va.y;
+          nz = va.z;
+        }
+
+        // rotateX
+        let ry = ny * cosX - nz * sinX;
+        let rz = ny * sinX + nz * cosX;
+        let rx = nx;
+        // rotateY
+        let rxx = rx * cosY + rz * sinY;
+        let rzz = -rx * sinY + rz * cosY;
+        let ryy = ry;
+        // rotateZ
+        const fx = rxx * cosZ - ryy * sinZ;
+        const fy = rxx * sinZ + ryy * cosZ;
+        const fz = rzz;
+
+        // Camera looks along +Z in this transformed space; front-facing if fz > 0
+        precomputedFacing[k] = fz > -0.2 ? 1 : 0;
+      }
+      precomputedFacingModelSet = modelSet;
+    }
+
     for (let i = 0; i < vlen; i++) {
       const vA = verticesA[i];
       const vB = verticesB[i];
@@ -239,9 +286,15 @@ function renderMorphedModel(modelA, modelB, morphAmount, modelSet) {
         cachedUVs[b2] = lerp(uA.x, uB.x, morphAmount);
         cachedUVs[b2 + 1] = lerp(uA.y, uB.y, morphAmount);
       } else {
-        const uv = sphericalUV(vx, vy, vz);
-        cachedUVs[b2] = uv[0];
-        cachedUVs[b2 + 1] = uv[1];
+        // Copy precomputed spherical UVs (cheap) instead of recomputing trig each morph step.
+        if (precomputedSphericalUVs) {
+          cachedUVs[b2] = precomputedSphericalUVs[b2];
+          cachedUVs[b2 + 1] = precomputedSphericalUVs[b2 + 1];
+        } else {
+          const uv = sphericalUV(vx, vy, vz);
+          cachedUVs[b2] = uv[0];
+          cachedUVs[b2 + 1] = uv[1];
+        }
       }
     }
 
@@ -256,6 +309,14 @@ function renderMorphedModel(modelA, modelB, morphAmount, modelSet) {
   for (let i = 0; i < faces.length; i++) {
     const face = faces[i];
     if (!face || face.length < 3) continue;
+
+    // Skip triangle entirely if none of its vertices are front-facing
+    if (precomputedFacing) {
+      const f0 = precomputedFacing[face[0]];
+      const f1 = precomputedFacing[face[1]];
+      const f2 = precomputedFacing[face[2]];
+      if (!f0 && !f1 && !f2) continue;
+    }
 
     for (let j = 0; j < 3; j++) {
       const idx = face[j];
