@@ -35,6 +35,9 @@ canvas {
   text-align:
     center;
   z-index: 1000;
+  /* make any text inside invisible while keeping element visible */
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 
@@ -56,3 +59,26 @@ canvas {
   /* make sure the posterframe Has max width*/
   max-width: 100%;
 }
+
+#p5_loading {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/*
+.loader {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  width: 50px;
+  aspect-ratio: 4;
+  background: radial-gradient(circle closest-side, #505050 90%, #0000) 0/calc(100%/3) 100% space;
+  clip-path: inset(0 100% 0 0);
+  animation: l1 1s steps(4) infinite;
+}
+
+@keyframes l1 {
+  to {
+    clip-path: inset(0 -34% 0 0)
+  }
+}
+  */

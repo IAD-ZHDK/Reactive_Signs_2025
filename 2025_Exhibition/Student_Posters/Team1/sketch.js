@@ -197,9 +197,11 @@ function draw() {
   let isoZ = 500;
   camera(isoX, isoY, isoZ, 0, 0, 0, 0, 1, 0);*/
 
-  let isoX = 300;
+  let isoX = 0;
+
   let isoY = 0;
-  let isoZ = 300;
+
+  let isoZ = 500;
   camera(isoX, isoY, isoZ, 0, 0, 0, 0, 1, 0);
 
 

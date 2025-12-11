@@ -1,11 +1,12 @@
 let parent = 'Student_Posters/'
 let indexFile = '/index.html'
-let posters = ['Team1', 'Team2', 'Team3', 'Team5', 'Team6', 'Team7', 'Team8']
+//let posters = ['Team1', 'Team2', 'Team3', 'Team4', 'Team5', 'Team6', 'Team7', 'Team8' 'Team9', 'Team10', 'Team11', 'Team12', 'Team13'];
+let posters = ['Team1', 'Team2', 'Team3', 'Team4', 'Team5', 'Team6', 'Team7', 'Team8', 'Team9', 'Team10', 'Team11', 'Team12', 'Team13'];
 let defaultPoster = 'PosterDefault';
 // not used: 
 let currentPoster = 0;
-let durationAt150 = 120000; //2 minutes
-let intervalCount = 1200; // 1300 
+let durationAt150 = 120000 //2 minutes
+let intervalCount = 1200; // 1200
 let trackingActive = false;
 let streaming = false;
 let demoMode = false
@@ -69,31 +70,38 @@ function handleKeyEvents() {
         currentPoster = 0;
       }
       posterNumber = currentPoster;
+      resetTimers()
       changePoster(posterNumber)
     } else {
       switch (keyCode) {
         case 'Digit1':
           posterNumber = 0;
+          resetTimers()
           changePoster(posterNumber)
           break;
         case 'Digit2':
           posterNumber = 1;
+          resetTimers()
           changePoster(posterNumber)
           break;
         case 'Digit3':
           posterNumber = 2;
+          resetTimers()
           changePoster(posterNumber)
           break;
         case 'Digit4':
           posterNumber = 3;
+          resetTimers()
           changePoster(posterNumber)
           break;
         case 'Digit5':
           posterNumber = 4;
+          resetTimers()
           changePoster(posterNumber)
           break;
         case 'Digit6':
           posterNumber = 5;
+          resetTimers()
           changePoster(posterNumber)
           break;
         case 'Digit7':
@@ -102,6 +110,7 @@ function handleKeyEvents() {
           break;
         case 'Digit8':
           posterNumber = 7;
+          resetTimers()
           changePoster(posterNumber)
           break;
         default:
@@ -224,7 +233,13 @@ function beginCountDown() {
   //nextPoster()
 }
 
+function resetTimers() {
+  count = 0;
+  countDirection = 1;
+  //  clearInterval(countInterval);
+}
 function nextPoster() {
+  resetTimers()
   console.log("nextPoster called")
   if (currentPoster < posters.length - 1) {
     currentPoster++;
@@ -244,11 +259,10 @@ function countHandler() {
     intervalAt150 = setInterval(beginCountDown, durationAt150);
     return;
   } else if (count < 0) {
-    count = 0;
+
     //transition to next poster 
     nextPoster();
-    countDirection = 1;
-    clearInterval(countInterval);
+
     return;
   }
   clearInterval(countInterval);

@@ -21,6 +21,12 @@ let precomputedSphericalUVs = null; // Float32Array (vlen * 2) cached per modelS
 let precomputedSphericalUVsModelSet = null;
 let precomputedFacing = null; // Uint8Array (vlen) 1 = front-facing, 0 = back-facing
 let precomputedFacingModelSet = null;
+// Morph precomputation settings
+const MORPH_PRECOMPUTE_STEPS = 256; // increase for smoother quantization (memory tradeoff)
+let precomputedMorphVertices = null; // Array of Float32Array buffers per step
+let precomputedMorphNormals = null;  // Array of Float32Array buffers per step
+let precomputedMorphUVs = null;      // optional per-step UVs if needed
+let precomputedMorphsModelSet = null;
 
 let environmentTexture;
 
@@ -91,21 +97,21 @@ function setup() {
 
 function draw() {
   background(0);
-
-  if (millis() - lastSwitchTime > 1000) {
-    morphOffset += 0.25 / width;
-    morphOffset = constrain(morphOffset, 0, 1);
-    lastSwitchTime = millis();
-  }
-
+  /*
+    if (millis() - lastSwitchTime > 1000) {
+      morphOffset += 0.25 / width;
+      morphOffset = constrain(morphOffset, 0, 1);
+      lastSwitchTime = millis();
+    }
+  */
   morphAmount = map(poster.position.x, 0, width, 0, 1) + morphOffset;
   morphAmount = constrain(morphAmount, 0, 1);
-
+  //console.log("morphAmount:", morphAmount);
   // Add subtle breathing morph when near deflated
-  if (morphAmount < 0.1) {
-    // const oscillation = sin(millis() * 0.002) * 0.03 + 0.5;
-    // morphAmount = constrain(morphAmount + oscillation, 0, 1);
-  }
+  // if (morphAmount < 0.1) {
+  // const oscillation = sin(millis() * 0.002) * 0.03 + 0.5;
+  // morphAmount = constrain(morphAmount + oscillation, 0, 1);
+  // }
 
   imageLight(environmentTexture);
   shininess(300);
@@ -114,7 +120,7 @@ function draw() {
   push();
   rotateX(HALF_PI);
   rotateY(PI);
-  rotateZ(PI + sin(millis() * 0.001) * 0.05);
+  rotateZ(PI + sin(millis() * 0.001) * 0.04);
   scale(5.5 * poster.vh);
 
   currentModelSet = poster.getCounter();
@@ -188,7 +194,7 @@ function renderMorphedModel(modelA, modelB, morphAmount, modelSet) {
   // Recompute cache only when morphAmount changes
   if (morphAmount !== lastMorphAmount || modelSet !== lastModelSet) {
     lastModelSet = modelSet;
-
+    //console.log("Recomputing morph cache for model set:", modelSet);
     const vlen = verticesA.length;
     cachedVertices = new Float32Array(vlen * 3);
     cachedNormals = new Float32Array(vlen * 3);
@@ -205,6 +211,59 @@ function renderMorphedModel(modelA, modelB, morphAmount, modelSet) {
         precomputedSphericalUVs[bb + 1] = uv[1];
       }
       precomputedSphericalUVsModelSet = modelSet;
+    }
+
+    // Precompute morph LUT for this model set (if not already present).
+    // This lets us avoid running `lerp` across all vertices on each morph change.
+    if (modelSet !== precomputedMorphsModelSet) {
+      precomputedMorphVertices = new Array(MORPH_PRECOMPUTE_STEPS);
+      precomputedMorphNormals = new Array(MORPH_PRECOMPUTE_STEPS);
+      precomputedMorphUVs = new Array(MORPH_PRECOMPUTE_STEPS);
+      for (let s = 0; s < MORPH_PRECOMPUTE_STEPS; s++) {
+        const t = s / (MORPH_PRECOMPUTE_STEPS - 1);
+        const pv = new Float32Array(vlen * 3);
+        const pn = new Float32Array(vlen * 3);
+        const pu = new Float32Array(vlen * 2);
+        for (let i = 0; i < vlen; i++) {
+          const a = verticesA[i];
+          const b = verticesB[i];
+          // inline lerp: a + (b - a) * t
+          const vx = a.x + (b.x - a.x) * t;
+          const vy = a.y + (b.y - a.y) * t;
+          const vz = a.z + (b.z - a.z) * t;
+          const bi3 = i * 3;
+          pv[bi3] = vx; pv[bi3 + 1] = vy; pv[bi3 + 2] = vz;
+
+          if (normalsA[i] && normalsB[i]) {
+            let nx = normalsA[i].x + (normalsB[i].x - normalsA[i].x) * t;
+            let ny = normalsA[i].y + (normalsB[i].y - normalsA[i].y) * t;
+            let nz = normalsA[i].z + (normalsB[i].z - normalsA[i].z) * t;
+            const invLen = 1 / Math.hypot(nx, ny, nz);
+            pn[bi3] = nx * invLen; pn[bi3 + 1] = ny * invLen; pn[bi3 + 2] = nz * invLen;
+          } else {
+            const invLen = 1 / Math.max(Math.hypot(vx, vy, vz), 1e-6);
+            pn[bi3] = vx * invLen; pn[bi3 + 1] = vy * invLen; pn[bi3 + 2] = vz * invLen;
+          }
+
+          const bi2 = i * 2;
+          if (hasUVs) {
+            const uA = uvsA[i];
+            const uB = uvsB[i];
+            pu[bi2] = uA.x + (uB.x - uA.x) * t;
+            pu[bi2 + 1] = uA.y + (uB.y - uA.y) * t;
+          } else if (precomputedSphericalUVs) {
+            pu[bi2] = precomputedSphericalUVs[bi2];
+            pu[bi2 + 1] = precomputedSphericalUVs[bi2 + 1];
+          } else {
+            const uv = sphericalUV(vx, vy, vz);
+            pu[bi2] = uv[0]; pu[bi2 + 1] = uv[1];
+          }
+        }
+        precomputedMorphVertices[s] = pv;
+        precomputedMorphNormals[s] = pn;
+        precomputedMorphUVs[s] = pu;
+      }
+      precomputedMorphsModelSet = modelSet;
     }
 
     // Precompute facing mask (front/back) once per model set (uses the current model rotation state).
@@ -252,48 +311,60 @@ function renderMorphedModel(modelA, modelB, morphAmount, modelSet) {
       precomputedFacingModelSet = modelSet;
     }
 
-    for (let i = 0; i < vlen; i++) {
-      const vA = verticesA[i];
-      const vB = verticesB[i];
+    // Use precomputed morph LUT when available to avoid per-vertex lerps.
+    if (precomputedMorphVertices && precomputedMorphsModelSet === modelSet) {
+      const step = Math.round(morphAmount * (MORPH_PRECOMPUTE_STEPS - 1));
+      const pv = precomputedMorphVertices[step];
+      const pn = precomputedMorphNormals[step];
+      const pu = precomputedMorphUVs[step];
+      // fast memory copy into per-frame cached arrays
+      cachedVertices.set(pv);
+      cachedNormals.set(pn);
+      cachedUVs.set(pu);
+    } else {
+      for (let i = 0; i < vlen; i++) {
+        const vA = verticesA[i];
+        const vB = verticesB[i];
 
-      const vx = lerp(vA.x, vB.x, morphAmount);
-      const vy = lerp(vA.y, vB.y, morphAmount);
-      const vz = lerp(vA.z, vB.z, morphAmount);
-      const b3 = i * 3;
-      cachedVertices[b3] = vx;
-      cachedVertices[b3 + 1] = vy;
-      cachedVertices[b3 + 2] = vz;
+        const vx = vA.x + (vB.x - vA.x) * morphAmount;
+        const vy = vA.y + (vB.y - vA.y) * morphAmount;
+        const vz = vA.z + (vB.z - vA.z) * morphAmount;
+        const b3 = i * 3;
+        cachedVertices[b3] = vx;
+        cachedVertices[b3 + 1] = vy;
+        cachedVertices[b3 + 2] = vz;
 
-      if (normalsA[i] && normalsB[i]) {
-        let nx = lerp(normalsA[i].x, normalsB[i].x, morphAmount);
-        let ny = lerp(normalsA[i].y, normalsB[i].y, morphAmount);
-        let nz = lerp(normalsA[i].z, normalsB[i].z, morphAmount);
-        const invLen = 1 / Math.hypot(nx, ny, nz);
-        cachedNormals[b3] = nx * invLen;
-        cachedNormals[b3 + 1] = ny * invLen;
-        cachedNormals[b3 + 2] = nz * invLen;
-      } else {
-        const invLen = 1 / Math.max(Math.hypot(vx, vy, vz), 1e-6);
-        cachedNormals[b3] = vx * invLen;
-        cachedNormals[b3 + 1] = vy * invLen;
-        cachedNormals[b3 + 2] = vz * invLen;
-      }
-
-      const b2 = i * 2;
-      if (hasUVs) {
-        const uA = uvsA[i];
-        const uB = uvsB[i];
-        cachedUVs[b2] = lerp(uA.x, uB.x, morphAmount);
-        cachedUVs[b2 + 1] = lerp(uA.y, uB.y, morphAmount);
-      } else {
-        // Copy precomputed spherical UVs (cheap) instead of recomputing trig each morph step.
-        if (precomputedSphericalUVs) {
-          cachedUVs[b2] = precomputedSphericalUVs[b2];
-          cachedUVs[b2 + 1] = precomputedSphericalUVs[b2 + 1];
+        if (normalsA[i] && normalsB[i]) {
+          let nx = normalsA[i].x + (normalsB[i].x - normalsA[i].x) * morphAmount;
+          let ny = normalsA[i].y + (normalsB[i].y - normalsA[i].y) * morphAmount;
+          let nz = normalsA[i].z + (normalsB[i].z - normalsA[i].z) * morphAmount;
+          const invLen = 1 / Math.hypot(nx, ny, nz);
+          cachedNormals[b3] = nx * invLen;
+          cachedNormals[b3 + 1] = ny * invLen;
+          cachedNormals[b3 + 2] = nz * invLen;
         } else {
-          const uv = sphericalUV(vx, vy, vz);
-          cachedUVs[b2] = uv[0];
-          cachedUVs[b2 + 1] = uv[1];
+          const invLen = 1 / Math.max(Math.hypot(vx, vy, vz), 1e-6);
+          cachedNormals[b3] = vx * invLen;
+          cachedNormals[b3 + 1] = vy * invLen;
+          cachedNormals[b3 + 2] = vz * invLen;
+        }
+
+        const b2 = i * 2;
+        if (hasUVs) {
+          const uA = uvsA[i];
+          const uB = uvsB[i];
+          cachedUVs[b2] = uA.x + (uB.x - uA.x) * morphAmount;
+          cachedUVs[b2 + 1] = uA.y + (uB.y - uA.y) * morphAmount;
+        } else {
+          // Copy precomputed spherical UVs (cheap) instead of recomputing trig each morph step.
+          if (precomputedSphericalUVs) {
+            cachedUVs[b2] = precomputedSphericalUVs[b2];
+            cachedUVs[b2 + 1] = precomputedSphericalUVs[b2 + 1];
+          } else {
+            const uv = sphericalUV(vx, vy, vz);
+            cachedUVs[b2] = uv[0];
+            cachedUVs[b2 + 1] = uv[1];
+          }
         }
       }
     }
