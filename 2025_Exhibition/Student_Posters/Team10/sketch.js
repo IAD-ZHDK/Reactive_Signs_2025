@@ -108,7 +108,7 @@ function preload() {
 
 function setup() {
   createCanvas(100, 100);
-
+  // pixelDensity(1); turn this on to simulte situation at Museum
   // Spotlight mask buffer erstellen
   spotlightMask = createGraphics(width, height);
 
@@ -541,17 +541,22 @@ function draw() {
       ? ATTRACTION_SETTINGS.highlightColor
       : TEXT_SETTINGS.highlightColor;
 
+    let colorValue = lerp(TEXT_SETTINGS.defaultColor[0], targetHighlightColor[0], totalColorStrength)
     color = [
-      lerp(TEXT_SETTINGS.defaultColor[0], targetHighlightColor[0], totalColorStrength),
-      lerp(TEXT_SETTINGS.defaultColor[1], targetHighlightColor[1], totalColorStrength),
-      lerp(TEXT_SETTINGS.defaultColor[2], targetHighlightColor[2], totalColorStrength)
+      colorValue,
+      colorValue,
+      colorValue
     ];
 
     // Apply opacity (only affects attraction, not number highlight)
     let finalOpacity = numberStrength > 0 ? 255 : attractOpacity * 255;
 
     fill(color[0], color[1], color[2], finalOpacity);
-    text(word.text, word.x + totalOffsetX, word.y + totalOffsetY);
+    let xPos = word.x + totalOffsetX;
+    xPos = constrain(xPos, 0, width);
+    if (word.y + totalOffsetY < height) {
+      text(word.text, xPos, word.y + totalOffsetY);
+    }
     //console.log(word.text);
   });
 }
