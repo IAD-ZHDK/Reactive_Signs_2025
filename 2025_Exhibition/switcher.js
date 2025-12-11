@@ -4,7 +4,7 @@ let indexFile = '/index.html'
 let posters = ['Team1', 'Team2', 'Team3', 'Team4', 'Team5', 'Team6', 'Team7', 'Team8', 'Team9', 'Team10', 'Team11', 'Team12', 'Team13'];
 let defaultPoster = 'PosterDefault';
 // not used: 
-let currentPoster = 0;
+let currentPoster = 9;
 let durationAt150 = 120000 //2 minutes
 let intervalCount = 1200; // 1200
 let trackingActive = false;
@@ -59,15 +59,31 @@ function handleKeyEvents() {
     }
   });
 
+  let down = false;
+  window.addEventListener('keyup', function (event) {
+    down = false;
+  });
   window.addEventListener('keydown', function (event) {
+    if (down) return;
+    down = true;
+
     let posterNumber = 0;
     let keyCode = event.code;
     console.log(keyCode)
-    if (keyCode == "next") {
+    if (keyCode == "ArrowRight") {
       if (currentPoster < posters.length - 1) {
         currentPoster++;
       } else {
         currentPoster = 0;
+      }
+      posterNumber = currentPoster;
+      resetTimers()
+      changePoster(posterNumber)
+    } else if (keyCode == "ArrowLeft") {
+      if (currentPoster > 0) {
+        currentPoster--;
+      } else {
+        currentPoster = posters.length - 1;
       }
       posterNumber = currentPoster;
       resetTimers()
@@ -119,6 +135,10 @@ function handleKeyEvents() {
     }
   });
 
+  attachIframeListeners();
+}
+
+function attachIframeListeners() {
   function passMouseEventToParent(event) {
     window.dispatchEvent(new MouseEvent(event.type, event));
   }
@@ -127,12 +147,11 @@ function handleKeyEvents() {
     window.dispatchEvent(new KeyboardEvent(event.type, event));
   }
 
-
   for (var i = 0; i < frames.length; i++) {
     frames[i].contentWindow.addEventListener('mousedown', passMouseEventToParent);
     frames[i].contentWindow.addEventListener('keydown', passKeyEventToParent);
+    frames[i].contentWindow.addEventListener('keyup', passKeyEventToParent);
   }
-
 }
 
 
@@ -146,7 +165,8 @@ function updateIframes() {
     frames[i].contentDocument.body.setAttribute('screen', i);
   }
   count = 0;
-  handleKeyEvents();
+  // Re-attach event listeners to new iframes
+  attachIframeListeners();
 }
 
 
@@ -164,7 +184,6 @@ function changePoster(posterNo) {
       // add an event when the iframe is loaded
       iframe.onload = function () {
         updateIframes();
-
       }
     }
 

@@ -15,7 +15,8 @@ const GROW_FRAMES = 5;
 
 
 let step = 8;
-let pixels = [];
+//let pixels = [];
+let pixelSets = [];
 let CANVAS_WIDTH;
 let CANVAS_HEIGHT;
 
@@ -83,26 +84,46 @@ function initializePixels(initialImage) {
             pixels[x][y] = { x: x, y: y, color: c, size: initialSize, originalSize: initialSize };
         }
     }
+    for (let i = 0; i < images.length; i++) {
+        pixelSets[i] = getPixelColours(i)
+    }
 }
 
 
 function updatePixelsColors(newImageIndex) {
-    let currentImage = images[newImageIndex];
-    currentImage.loadPixels();
-
-    for (let x = 0; x < currentImage.width; x += step) {
-        for (let y = 0; y < currentImage.height; y += step) {
-            let c = currentImage.get(x, y);
-
-            pixels[x][y].color = c;
+    //let currentImage = images[newImageIndex];
+    //currentImage.loadPixels();
+    let pixelColors = pixelSets[newImageIndex];
+    for (let x = 0; x < pixelColors.length; x += step) {
+        for (let y = 0; y < pixelColors[x].length; y += step) {
+            // let c = currentImage.get(x, y);
             let newSize = random(INITIAL_PARTICLE_SIZE_MIN, INITIAL_PARTICLE_SIZE_MAX);
-            pixels[x][y].originalSize = newSize;
-
-            pixels[x][y].size = 0; // Se inicializa a 0 para crecer
+            pixelColors[x][y].originalSize = newSize;
+            pixelColors[x][y].size = 0; // Se inicializa a 0 para crecer
         }
     }
 }
 
+
+function getPixelColours(newImageIndex) {
+    let currentImage = images[newImageIndex];
+    currentImage.loadPixels();
+    let pixelColors = [];
+    for (let x = 0; x < currentImage.width; x += step) {
+        pixelColors[x] = [];
+        for (let y = 0; y < currentImage.height; y += step) {
+            let initialSize = random(INITIAL_PARTICLE_SIZE_MIN, INITIAL_PARTICLE_SIZE_MAX);
+            pixelColors[x][y] = { x: x, y: y, color: 100, size: initialSize, originalSize: initialSize };
+            let c = currentImage.get(x, y);
+            // pixelColors 
+            pixelColors[x][y].color = c;
+            let newSize = random(INITIAL_PARTICLE_SIZE_MIN, INITIAL_PARTICLE_SIZE_MAX);
+            pixelColors[x][y].originalSize = newSize;
+            pixelColors[x][y].size = 0; // Se inicializa a 0 para crecer
+        }
+    }
+    return pixelColors;
+}
 // Detecta el cambio de número y activa la transición
 function handleImageChangeAndTransition() {
     let currentCounter = poster.getCounter();
@@ -116,7 +137,7 @@ function handleImageChangeAndTransition() {
         isTransitioning = true;
         transitionStartTime = frameCount;
     }
-
+    pixels = pixelSets[imageIndex];
     if (isTransitioning) {
         let elapsedFrames = frameCount - transitionStartTime;
         let mixFactor = constrain(elapsedFrames / GROW_FRAMES, 0, 1);
@@ -286,7 +307,7 @@ class Particle {
             push();
             fill(255, this.lifespan);
 
-            let s = this.size / 2;
+            let s = this.size / 4;
             let x = this.pos.x;
             let y = this.pos.y;
 

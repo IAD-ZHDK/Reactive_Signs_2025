@@ -3,4 +3,5 @@ Notes on changes from Luke
 - framerate(10) removed: This was causing the slow framerate, there is always a better way to slow down an animation.
 - Turns out quad is very slow: I replaced it with rotated rectangles.
 - const speed = 0.025; I reduced this to compensate for the higher framerate
-- amplitude was hardcoded!
+- amplitude was hardcoded; it's now a relative value
+- There were many repeat readings of pixel values from the image, i've done a quick and dirty job of replacing this, but there could still be some performance optimisation 

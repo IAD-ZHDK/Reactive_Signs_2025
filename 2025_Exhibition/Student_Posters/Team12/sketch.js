@@ -42,15 +42,20 @@ function preload() {
     digitsD9_d[i] = loadImage("imgs/d9_d" + i + ".png");
   }
   barGif = loadImage("imgs/bar-try.gif");
+  // prebuffer 
 }
-
 function setup() {
   createCanvas(100, 100);
+  pixelDensity(1);
   noSmooth();
   noStroke();
-  step = floor(height / 4);
-  textSize(step * 0.8);
+  step = floor(height * 0.02);
+  textSize(step);
   textAlign(CENTER, CENTER);
+}
+function windowResized() {
+  step = floor(height * 0.02);
+  textSize(step);
 }
 
 function draw() {
@@ -146,7 +151,7 @@ function asciiEffect(frameImg, frameIndex) {
   pg.background(0);
   pg.fill(255);
   pg.textAlign(CENTER, CENTER);
-  pg.textSize(step * 0.8);
+  pg.textSize(step * 0.7);
 
   let scaleFactor = min(width / frameImg.width, height / frameImg.height);
   let scaledWidth = frameImg.width * scaleFactor;
