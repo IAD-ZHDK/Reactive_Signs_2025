@@ -14,7 +14,7 @@ let transitionStartTime = 0;
 const GROW_FRAMES = 5;
 
 
-let step = 8;
+let step;
 //let pixels = [];
 let pixelSets = [];
 let CANVAS_WIDTH;
@@ -63,7 +63,7 @@ function setUpDisplay() {
     CANVAS_HEIGHT = floor(poster.vh * 90);
 
     // Ensure step is at least 1 and tied to the smaller canvas dimension to avoid zero or overshoot
-    step = max(1, floor(min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.024));
+    step = max(1, floor(min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.03));
 
     INITIAL_PARTICLE_SIZE_MIN = width * 0.04;
     INITIAL_PARTICLE_SIZE_MAX = width * 0.02;
@@ -234,8 +234,8 @@ function findValidPixelCoord(newImageIndex) {
     let max_y = pixels[0].length;
 
     while (attempts < MAX_ATTEMPTS) {
-        let randX = floor(random(0, max_x) / step) * step;
-        let randY = floor(random(0, max_y) / step) * step;
+        let randX = floor(random(0, max_x));
+        let randY = floor(random(0, max_y));
 
         if (randX < max_x && randY < max_y) {
             let pixelData = pixels[randX][randY];
