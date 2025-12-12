@@ -136,22 +136,31 @@ function draw() {
 
 function asciiEffect(frameImg, frameIndex) {
   // Use cached ascii image
-  if (
-    cachedForImage === frameImg &&
-    cachedForFrame === frameIndex &&
-    cachedAscii
-  ) {
-    image(cachedAscii, 0, 0, width, height);
-    return;
-  }
+  /*
+if (
+  cachedForImage === frameImg &&
+  cachedForFrame === frameIndex &&
+  cachedAscii
+) {
+  image(cachedAscii, 0, 0, width, height);
+  return;
+}
 
-  // Create buffer
-  let pg = createGraphics(width, height);
-  pg.noSmooth();
-  pg.background(0);
-  pg.fill(255);
-  pg.textAlign(CENTER, CENTER);
-  pg.textSize(step * 0.7);
+
+// Create buffer
+let pg = createGraphics(width, height);
+pg.noSmooth();
+pg.background(0);
+pg.fill(255);
+pg.textAlign(CENTER, CENTER);
+pg.textSize(step * 0.7);
+*/
+
+
+  background(0);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(step * 0.7);
 
   let scaleFactor = min(width / frameImg.width, height / frameImg.height);
   let scaledWidth = frameImg.width * scaleFactor;
@@ -173,19 +182,19 @@ function asciiEffect(frameImg, frameIndex) {
 
       let charIndex = round(map(avg, 0, 255, charas.length - 1, 0));
       charIndex = constrain(charIndex, 0, charas.length - 1);
-      pg.text(
+      text(
         charas[charIndex],
         offsetX + x + step / 2,
         offsetY + y + step / 2
       );
     }
   }
-
-  cachedAscii = pg.get();
-  cachedForImage = frameImg;
-  cachedForFrame = frameIndex;
-
-  image(cachedAscii, 0, 0, width, height);
+  /*
+    cachedAscii = pg.get();
+    cachedForImage = frameImg;
+    cachedForFrame = frameIndex;
+  */
+  // image(cachedAscii, 0, 0, width, height);
 }
 
 function oppositeMirror() {
