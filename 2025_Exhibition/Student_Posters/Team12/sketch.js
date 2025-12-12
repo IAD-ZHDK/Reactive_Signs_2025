@@ -46,7 +46,7 @@ function preload() {
 }
 function setup() {
   createCanvas(100, 100);
-  pixelDensity(1);
+  // pixelDensity(1);
   noSmooth();
   noStroke();
   step = floor(height * 0.02);
