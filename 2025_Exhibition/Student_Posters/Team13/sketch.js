@@ -29,6 +29,9 @@ function setup() {
     noStroke();
     textFont(myFont);
 }
+function windowResized() {
+    defineDigits();
+}
 
 function draw() {
     background(0); // set bac
@@ -196,7 +199,7 @@ class Particle {
         // 2. Map Wave to Opacity Gradient
         // When wave is -1 (trough), opacity is LOW (20)
         // When wave is 1 (crest), opacity is HIGH (255)
-        let minOpacity = 20;
+        let minOpacity = 90;
         let maxOpacity = 255;
         let targetAlpha = map(val, -1, 1, minOpacity, maxOpacity);
 
@@ -220,7 +223,6 @@ class Particle {
 
         let s = this.active ? GRID_SIZE * 0.8 : map(this.pos.z, 0, -2000, GRID_SIZE, 0);
         if (s > 0) box(s);
-
         pop();
     }
 }

@@ -4,7 +4,7 @@ let indexFile = '/index.html'
 let posters = ['Team1', 'Team2', 'Team3', 'Team4', 'Team5', 'Team6', 'Team7', 'Team8', 'Team9', 'Team10', 'Team11', 'Team12', 'Team13'];
 let defaultPoster = 'PosterDefault';
 // not used: 
-let currentPoster = 9;
+let currentPoster = 0;
 let durationAt150 = 120000 //2 minutes
 let intervalCount = 1200; // 1200
 let trackingActive = false;
@@ -126,6 +126,11 @@ function handleKeyEvents() {
           break;
         case 'Digit8':
           posterNumber = 7;
+          resetTimers()
+          changePoster(posterNumber)
+          break;
+        case 'Digit9':
+          posterNumber = 9;
           resetTimers()
           changePoster(posterNumber)
           break;
