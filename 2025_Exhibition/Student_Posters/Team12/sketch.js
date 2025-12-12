@@ -49,12 +49,12 @@ function setup() {
   // pixelDensity(1);
   noSmooth();
   noStroke();
-  step = floor(height * 0.02);
+  step = floor(height * 0.016);
   textSize(step);
   textAlign(CENTER, CENTER);
 }
 function windowResized() {
-  step = floor(height * 0.02);
+  step = floor(height * 0.016);
   textSize(step);
 }
 
