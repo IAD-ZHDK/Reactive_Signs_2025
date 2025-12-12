@@ -49,14 +49,24 @@ function setup() {
 
     createCanvas(100, 100, WEBGL);
 
+    setUpDisplay();
+    textFont(font)
+
+}
+
+function windowResized() {
+    setUpDisplay()
+}
+
+function setUpDisplay() {
     CANVAS_WIDTH = floor(poster.vw * 85);
     CANVAS_HEIGHT = floor(poster.vh * 90);
 
     // Ensure step is at least 1 and tied to the smaller canvas dimension to avoid zero or overshoot
-    step = max(1, floor(min(CANVAS_WIDTH, CANVAS_HEIGHT) / 45));
+    step = max(1, floor(min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.024));
 
-    INITIAL_PARTICLE_SIZE_MIN = width * 0.19;
-    INITIAL_PARTICLE_SIZE_MAX = width * 0.1;
+    INITIAL_PARTICLE_SIZE_MIN = width * 0.04;
+    INITIAL_PARTICLE_SIZE_MAX = width * 0.02;
 
     noStroke();
 
@@ -67,35 +77,18 @@ function setup() {
     imageMode(CENTER);
     // frameRate(10);
     imageIndex = poster.getCounter() % images.length;
-    initializePixels(images[imageIndex]);
-    textFont(font)
+    for (let i = 0; i < images.length; i++) {
+        pixelSets[i] = initializePixels(i)
+    }
     amplitude = poster.vw * 5;
 }
-
-
-function initializePixels(initialImage) {
-    initialImage.loadPixels();
-
-    for (let x = 0; x < initialImage.width; x += step) {
-        pixels[x] = [];
-        for (let y = 0; y < initialImage.height; y += step) {
-            let c = initialImage.get(x, y);
-            let initialSize = random(INITIAL_PARTICLE_SIZE_MIN, INITIAL_PARTICLE_SIZE_MAX);
-            pixels[x][y] = { x: x, y: y, color: c, size: initialSize, originalSize: initialSize };
-        }
-    }
-    for (let i = 0; i < images.length; i++) {
-        pixelSets[i] = getPixelColours(i)
-    }
-}
-
 
 function updatePixelsColors(newImageIndex) {
     //let currentImage = images[newImageIndex];
     //currentImage.loadPixels();
     let pixelColors = pixelSets[newImageIndex];
-    for (let x = 0; x < pixelColors.length; x += step) {
-        for (let y = 0; y < pixelColors[x].length; y += step) {
+    for (let x = 0; x < pixelColors.length; x++) {
+        for (let y = 0; y < pixelColors[x].length; y++) {
             // let c = currentImage.get(x, y);
             let newSize = random(INITIAL_PARTICLE_SIZE_MIN, INITIAL_PARTICLE_SIZE_MAX);
             pixelColors[x][y].originalSize = newSize;
@@ -105,17 +98,21 @@ function updatePixelsColors(newImageIndex) {
 }
 
 
-function getPixelColours(newImageIndex) {
+function initializePixels(newImageIndex) {
     let currentImage = images[newImageIndex];
     currentImage.loadPixels();
     let pixelColors = [];
-    for (let x = 0; x < currentImage.width; x += step) {
+    let sizeX = floor(currentImage.width / step);
+    let sizeY = floor(currentImage.height / step);
+
+    for (let x = 0; x < sizeX; x++) {
+        let x1 = x * step;
         pixelColors[x] = [];
-        for (let y = 0; y < currentImage.height; y += step) {
+        for (let y = 0; y < sizeY; y++) {
+            let y1 = y * step;
             let initialSize = random(INITIAL_PARTICLE_SIZE_MIN, INITIAL_PARTICLE_SIZE_MAX);
-            pixelColors[x][y] = { x: x, y: y, color: 100, size: initialSize, originalSize: initialSize };
-            let c = currentImage.get(x, y);
-            // pixelColors 
+            pixelColors[x][y] = { x: x1, y: y1, color: 100, size: initialSize, originalSize: initialSize };
+            let c = currentImage.get(x1, y1);
             pixelColors[x][y].color = c;
             let newSize = random(INITIAL_PARTICLE_SIZE_MIN, INITIAL_PARTICLE_SIZE_MAX);
             pixelColors[x][y].originalSize = newSize;
@@ -125,9 +122,8 @@ function getPixelColours(newImageIndex) {
     return pixelColors;
 }
 // Detecta el cambio de número y activa la transición
-function handleImageChangeAndTransition() {
-    let currentCounter = poster.getCounter();
-    let newImageIndex = currentCounter % images.length;
+function handleImageChangeAndTransition(newImageIndex) {
+
 
     if (newImageIndex !== imageIndex) {
 
@@ -142,8 +138,8 @@ function handleImageChangeAndTransition() {
         let elapsedFrames = frameCount - transitionStartTime;
         let mixFactor = constrain(elapsedFrames / GROW_FRAMES, 0, 1);
 
-        for (let x = 0; x < CANVAS_WIDTH; x += step) {
-            for (let y = 0; y < CANVAS_HEIGHT; y += step) {
+        for (let x = 0; x < pixels.length; x++) {
+            for (let y = 0; y < pixels[x].length; y++) {
                 if (pixels[x] && pixels[x][y] && brightness(pixels[x][y].color) > 0) {
                     pixels[x][y].size = lerp(0, pixels[x][y].originalSize, mixFactor);
                 } else if (pixels[x] && pixels[x][y]) {
@@ -157,7 +153,7 @@ function handleImageChangeAndTransition() {
         }
     }
     else {
-        randomizeStableSize();
+        randomizeStableSize(newImageIndex);
     }
 }
 
@@ -169,21 +165,27 @@ function draw() {
 
     translate(spacingx, spacingy)
 
-    handleImageChangeAndTransition();
+    let currentCounter = poster.getCounter();
+    let newImageIndex = currentCounter % images.length;
+
+    handleImageChangeAndTransition(newImageIndex);
 
 
-    MovingFire();
+    MovingFire(newImageIndex);
 
     if (!isTransitioning) {
-        Explosions();
+        Explosions(newImageIndex);
     }
     pop()
 }
 
 
-function randomizeStableSize() {
-    for (let x = 0; x < CANVAS_WIDTH; x += step) {
-        for (let y = 0; y < CANVAS_HEIGHT; y += step) {
+function randomizeStableSize(imageIndex) {
+    pixels = pixelSets[imageIndex];
+
+
+    for (let x = 0; x < pixels.length; x++) {
+        for (let y = 0; y < pixels[x].length; y++) {
             if (pixels[x] && pixels[x][y]) {
                 let pixel = pixels[x][y];
 
@@ -197,11 +199,13 @@ function randomizeStableSize() {
     }
 }
 
-function MovingFire() {
+function MovingFire(imageIndex) {
+
+    pixels = pixelSets[imageIndex];
     background(0);
     let circleCount = 0;
-    for (let x = 0; x < CANVAS_WIDTH; x += step) {
-        for (let y = 0; y < CANVAS_HEIGHT; y += step) {
+    for (let x = 0; x < pixels.length; x++) {
+        for (let y = 0; y < pixels[x].length; y++) {
             let pixel = pixels[x][y];
 
             let angle = pixel.y * frequency_Y + frameCount * speed;
@@ -220,12 +224,14 @@ function MovingFire() {
     // console.log("Circles drawn: " + circleCount);
 }
 
-function findValidPixelCoord() {
+function findValidPixelCoord(newImageIndex) {
+    let pixels = pixelSets[newImageIndex];
+
     let attempts = 0;
     const MAX_ATTEMPTS = 50;
 
-    let max_x = CANVAS_WIDTH;
-    let max_y = CANVAS_HEIGHT;
+    let max_x = pixels.length;
+    let max_y = pixels[0].length;
 
     while (attempts < MAX_ATTEMPTS) {
         let randX = floor(random(0, max_x) / step) * step;
@@ -248,14 +254,15 @@ function findValidPixelCoord() {
 }
 
 
-function Explosions() {
+function Explosions(newImageIndex) {
+
     let maxIntentos = map(poster.position.x, 0, CANVAS_WIDTH, 0, MAX_SIMULTANEOUS_EXPLOSIONS);
     let intentos = floor(maxIntentos);
 
     for (let j = 0; j < intentos; j++) {
         let cantidadParticulas = floor(random(MIN_PARTICLES_PER_SPARK, MAX_PARTICLES_PER_SPARK + 1));
 
-        let validCoord = findValidPixelCoord();
+        let validCoord = findValidPixelCoord(newImageIndex);
         let explosionX = validCoord.x;
         let explosionY = validCoord.y;
 
