@@ -108,7 +108,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  createCanvas(windowWidth, windowHeight, WEBGL);
   pixelDensity(1); // ANGEPASST: Aktiviert um Museum-Setup zu simulieren
 
 
@@ -136,10 +136,10 @@ function createSpotlightMask(w, h, radius, softness) {
   let size = h * radius;
   let maxRadius = sqrt(spotlightMask.width * spotlightMask.width + spotlightMask.height * spotlightMask.height);
   spotlightMask.strokeWeight(softness * 4);
-  for (let r = size - 200; r < maxRadius; r += softness * 4) {
-    let lightnes = map(r, size - 200, size, 0, 255)
-    lightnes = constrain(lightnes, 0, 255);
-    let c = color(0, 0, 0, lightnes)
+  for (let r = size - (w * 0.8); r < maxRadius; r += softness * 4) {
+    let lightness = map(r, size - (w * 0.6), size, 0, 255)
+    lightness = constrain(lightness, 0, 255);
+    let c = color(0, 0, 0, lightness)
     spotlightMask.noFill();
     spotlightMask.stroke(c)
     spotlightMask.ellipse(0, 0, r, r)
@@ -279,8 +279,7 @@ function drawBackgroundGif() {
   image(spotlightMask, 0, 0);
 
   pop();
-  fill(255, 0, 0)
-  circle(spotlightX, spotlightY, 10);
+
 }
 
 function createNumberGraphics(currentCounter) {
@@ -330,8 +329,9 @@ function createNumberGraphics(currentCounter) {
 }
 
 function draw() {
+  push();
   background(0, 0, 0);  // ANGEPASST: von (10,10,10) auf reines Schwarz für maximalen Kontrast
-
+  translate(-width / 2, -height / 2); // offset for WEBGL mode
   spotlight();
   // Hintergrund-GIF mit Spotlight zeichnen
   drawBackgroundGif();
@@ -476,6 +476,7 @@ function draw() {
   });
   //console.log(currentCounter)
   // image(allNumberGraphics[currentCounter], 0, 0);
+  pop();
 }
 
 function easeInOutCubic(t) {
