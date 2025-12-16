@@ -12,7 +12,7 @@ const BG_SETTINGS = {
 const SPOTLIGHT_SETTINGS = {
   enabled: true,
   maxOpacity: 220,            // ANGEPASST: von 180 auf 220 für mehr Kontrast
-  radius: 0.34,               // Spotlight radius bis max 1.0
+  radius: .7,               // Spotlight radius bis max 1.0
   softness: 1,              // Edge softness (0 = hard edge, 1 = very soft)
   easing: 0.1,             // How fast the spotlight follows (0.01-0.3)
 
@@ -68,16 +68,16 @@ const TEXT_SETTINGS = {
   numberHeightScale: 0.21,                      // Size of the highlight number (0.9 = 90% of window height)
   numberColor: [255, 255, 255],                // Color of the highlight number (RGB: white)
   numberOpacity: 255,                         // Opacity of the highlight number (0-255)
-  numberVerticalOffset: 10                  // Vertical offset in pixels (positive = down, negative = up)
+  numberVerticalOffset: -.01                  // Vertical offset in pixels (positive = down, negative = up)
 };
 
 
 let textContent = [
-  "In 2025, the Museum für Gestaltung Zürich is celebrating the 150th anniversary of its founding. A banner year that presents the perfect occasion not only to take a look back at the history of the museum but also to examine current developments in the field of design and venture an outlook toward the future. A variety program of exhibitions and activities will take place throughout the anniversary year. One highlight is the grand opening in mid-April of the new permanent exhibition Swiss Design Collection at the Toni-Areal, accompanied by a whole weekend of festivities. In recent years, the Museum für Gestaltung Zürich has further strengthened its position as a leading museum of design and visual communication. With innovative exhibitions and interactive formats, it attracts a wide audience, promoting an ongoing dialogue on the latest trends and social issues in design. The museum explores design in all its diversity, presenting outstanding works to the public while also addressing today's digital transformation and fostering exchange and networking within the global design community. The museum places special emphasis on inclusion and sustainability and is committed to making its exhibitions and activities as broadly accessible and resource-efficient as possible. The diverse program is geared toward people of varied age groups and cultural backgrounds. In an effort to appeal to a broad international audience, the museum offers information and guided tours in several languages as well as simple German. On our 150th anniversary, we respectfully remember our past while looking confidently to the future. We want to continue to serve as a platform for innovative exhibitions, for safeguarding and preserving outstanding works, and for creative exchange. Our program endeavors to convey the enormous importance of design in a fun and exciting way so that as many people as possible can be inspired by good design, says Christian Brändle, director of the museum. The year kicks off with a special program at the museum's Ausstellungsstrasse location. The admission-free exhibition Jakob Kudsk Steensen: Berl-Berl turns the lecture hall into an immersive installation that will continually be reconfigured in real time by dedicated game engines. The unique 1933 building will be additionally enlivened in January by a range of activities for young and old, including behind-the-scenes architecture tours, design talks, workshops, one-off sales, a bar, a screen-printing studio, game events, and musical performances. Following this multifaceted prelude to the anniversary year, the new permanent exhibition Swiss Design Collection will open at the Toni-Areal in April. The exhibition presents highlights from the fields of graphic design, posters, the decorative arts, and industrial design that shed light on the collection from diverse and unexpected perspectives while also making parts of the archives accessible to the public for the first time. Visitors will be invited to exercise their own creativity based on various themes and using a number of different techniques. The exhibition opening on April 11 will mark the start of an anniversary weekend featuring free admission to both the new Swiss Design Collection presentation and the other exhibitions on view at the Toni-Areal and Ausstellungsstrasse locations. In July, the museum will then extend its reach into the public space with an exhibition by the lake devoted to 150 years of poster culture. Historical as well as contemporary examples will illustrate the development of poster art and its significance for visual communication. Viewers can look forward to embarking on a visual journey through the decades as they learn how posters still serve today as a mirror of society and a medium for artistic expression."
-];
+  "In 2025, the Museum für Gestaltung Zürich is celebrating the 150th anniversary of its founding. A banner year that presents the perfect occasion not only to take a look back at the history of the museum but also to examine current developments in the field of design and venture an outlook toward the future. A variety program of exhibitions and activities will take place throughout the anniversary year. One highlight is the grand opening in mid-April of the new permanent exhibition Swiss Design Collection at the Toni-Areal, accompanied by a whole weekend of festivities. In recent years, the Museum für Gestaltung Zürich has further strengthened its position as a leading museum of design and visual communication. With innovative exhibitions and interactive formats, it attracts a wide audience, promoting an ongoing dialogue on the latest trends and social issues in design. The museum explores design in all its diversity, presenting outstanding works to the public while also addressing today's digital transformation and fostering exchange and networking within the global design community. The museum places special emphasis on inclusion and sustainability and is committed to making its exhibitions and activities as broadly accessible and resource-efficient as possible. The diverse program is geared toward people of varied age groups and cultural backgrounds. In an effort to appeal to a broad international audience, the museum offers information and guided tours in several languages as well as simple German. On our 150th anniversary, we respectfully remember our past while looking confidently to the future. We want to continue to serve as a platform for innovative exhibitions, for safeguarding and preserving outstanding works, and for creative exchange. Our program endeavors to convey the enormous importance of design in a fun and exciting way so that as many people as possible can be inspired by good design, says Christian Brändle, director of the museum. The year kicks off with a special program at the museum's Ausstellungsstrasse location. The admission-free exhibition Jakob Kudsk Steensen: Berl-Berl turns the lecture hall into an immersive installation that will continually be reconfigured in real time by dedicated game engines. The unique 1933 building will be additionally enlivened in January by a range of activities for young and old, including behind-the-scenes architecture tours, design talks, workshops, one-off sales, a bar, a screen-printing studio, game events, and musical performances."];
 
 let words = [];
 let numberGraphics;
+let allNumberGraphics = [];
 let lastCounter = -1;
 let oldNumberGraphics;
 let transitionProgress = 1;
@@ -108,18 +108,45 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(100, 100);
+  createCanvas(windowWidth, windowHeight);
   pixelDensity(1); // ANGEPASST: Aktiviert um Museum-Setup zu simulieren
 
-  // Spotlight mask buffer erstellen
-  spotlightMask = createGraphics(width, height);
 
+  createSpotlightMask(width, height, SPOTLIGHT_SETTINGS.radius, SPOTLIGHT_SETTINGS.softness);
   // Initial spotlight position
   spotlightX = width / 2;
   spotlightY = height / 2;
 
   layoutText();
+
+  for (let i = 0; i <= 9; i++) {
+    allNumberGraphics[i] = createNumberGraphics(i);
+  }
+
+  numberGraphics = allNumberGraphics[0]
+  oldNumberGraphics = allNumberGraphics[9]
+  console.log(words.length)
 }
+
+function createSpotlightMask(w, h, radius, softness) {
+  // Spotlight mask buffer erstellen
+  spotlightMask = createGraphics(w * 2.1, h * 2.1);
+  spotlightMask.clear();
+  spotlightMask.translate(spotlightMask.width / 2, spotlightMask.height / 2)
+  let size = h * radius;
+  let maxRadius = sqrt(spotlightMask.width * spotlightMask.width + spotlightMask.height * spotlightMask.height);
+  spotlightMask.strokeWeight(softness * 4);
+  for (let r = size - 200; r < maxRadius; r += softness * 4) {
+    let lightnes = map(r, size - 200, size, 0, 255)
+    lightnes = constrain(lightnes, 0, 255);
+    let c = color(0, 0, 0, lightnes)
+    spotlightMask.noFill();
+    spotlightMask.stroke(c)
+    spotlightMask.ellipse(0, 0, r, r)
+  }
+
+}
+
 
 function layoutText() {
   words = [];
@@ -197,48 +224,6 @@ function justifyLine(lineWords, startX, yPos, maxWidth, isLastLine, fontSize, li
   });
 }
 
-// Berechne GIF-Dimensionen basierend auf fitMode
-function getGifDimensions() {
-  let imgW, imgH, imgX, imgY;
-
-  if (BG_SETTINGS.fitMode === 'cover') {
-    let canvasRatio = width / height;
-    let imgRatio = backgroundGif.width / backgroundGif.height;
-
-    if (canvasRatio > imgRatio) {
-      imgW = width;
-      imgH = width / imgRatio;
-    } else {
-      imgH = height;
-      imgW = height * imgRatio;
-    }
-    imgX = (width - imgW) / 2;
-    imgY = (height - imgH) / 2;
-
-  } else if (BG_SETTINGS.fitMode === 'contain') {
-    let canvasRatio = width / height;
-    let imgRatio = backgroundGif.width / backgroundGif.height;
-
-    if (canvasRatio > imgRatio) {
-      imgH = height;
-      imgW = height * imgRatio;
-    } else {
-      imgW = width;
-      imgH = width / imgRatio;
-    }
-    imgX = (width - imgW) / 2;
-    imgY = (height - imgH) / 2;
-
-  } else {
-    imgX = 0;
-    imgY = 0;
-    imgW = width;
-    imgH = height;
-  }
-
-  return { imgX, imgY, imgW, imgH };
-}
-
 // Berechne die Spotlight Y-Position basierend auf einer Sinuswelle
 function calculateSineWaveY(normalizedX) {
   if (!SPOTLIGHT_SETTINGS.sineWaveEnabled) {
@@ -281,153 +266,82 @@ function sign(x) {
   return x > 0 ? 1 : x < 0 ? -1 : 0;
 }
 
+
+
 // Funktion zum Zeichnen des Hintergrund-GIFs mit Spotlight
 function drawBackgroundGif() {
-  if (!BG_SETTINGS.enabled || !backgroundGif) return;
+  image(backgroundGif, 0, 0, width, height);
+  push()
 
-  let dims = getGifDimensions();
+  //translate(width / 2, height / 2);
+  translate(-spotlightMask.width / 2, -spotlightMask.height / 2);
+  translate(spotlightX, spotlightY);
+  image(spotlightMask, 0, 0);
 
-  // X-Position folgt der Person (kann über den Bildschirmrand hinausgehen)
-  let normalizedX = poster.posNormal.x;
-  let targetX;
-
-  if (SPOTLIGHT_SETTINGS.allowOffscreen) {
-    // Erlaube Positionen ausserhalb des Bildschirms
-    // posNormal.x kann Werte < 0 oder > 1 haben wenn Person den Bereich verlässt
-    let margin = width * SPOTLIGHT_SETTINGS.offscreenMargin;
-    targetX = normalizedX * width;
-    // Wenn Person weit weg ist, Spotlight weiter rausschieben
-    if (normalizedX < 0) {
-      targetX = normalizedX * width - margin * abs(normalizedX);
-    } else if (normalizedX > 1) {
-      targetX = normalizedX * width + margin * (normalizedX - 1);
-    }
-  } else {
-    targetX = constrain(normalizedX, 0, 1) * width;
-  }
-
-  // Y-Position folgt der Sinuswelle basierend auf X-Position
-  let targetY = calculateSineWaveY(normalizedX);
-
-  // Smooth spotlight position
-  spotlightX += (targetX - spotlightX) * SPOTLIGHT_SETTINGS.easing;
-  spotlightY += (targetY - spotlightY) * SPOTLIGHT_SETTINGS.easing;
-
-  // 1. Basis-GIF mit niedriger Opacity zeichnen
-  push();
-  tint(BG_SETTINGS.tint[0], BG_SETTINGS.tint[1], BG_SETTINGS.tint[2], BG_SETTINGS.opacity);
-  image(backgroundGif, dims.imgX, dims.imgY, dims.imgW, dims.imgH);
   pop();
+  fill(255, 0, 0)
+  circle(spotlightX, spotlightY, 10);
+}
 
-  // 2. Spotlight-Overlay mit höherer Opacity
-  if (SPOTLIGHT_SETTINGS.enabled) {
-    let spotRadius = height * SPOTLIGHT_SETTINGS.radius;
-    let innerRadius = spotRadius * (1 - SPOTLIGHT_SETTINGS.softness);
+function createNumberGraphics(currentCounter) {
 
-    // Spotlight mask erstellen mit radialem Gradient
-    spotlightMask.clear();
+  lineSlideParams = buildLineParams();
 
-    // Radialer Gradient für weichen Spotlight-Effekt
-    let steps = 30;
-    spotlightMask.noStroke();
+  // Neues Graphics fuer die Zahl
+  let graphics = createGraphics(floor(width * 0.05), floor(height * 0.05));
+  graphics.textFont(backgroundFont);
+  //graphics.pixelDensity(1);
+  // Referenzgroesse fuer Messung
+  //graphics.textSize(refSize);
 
-    for (let i = steps; i >= 0; i--) {
-      let t = i / steps;
-      let r = lerp(innerRadius, spotRadius, t);
+  // Zielhoehe: aus Settings
 
-      // Opacity fällt von innen nach aussen ab
-      let alpha = map(i, 0, steps, 255, 0);
-      // Smooth falloff
-      alpha = alpha * (1 - t * t);
+  let numberSize = graphics.height * 0.9;
+  // endgueltige Groesse setzen
+  graphics.textSize(numberSize);
+  //graphics.background(255, 0, 0);
 
-      spotlightMask.fill(255, 255, 255, alpha);
-      spotlightMask.ellipse(spotlightX, spotlightY, r * 2, r * 2);
+  // Zahl zentriert in der Mitte des Offscreen-Canvas zeichnen (mit vertikalem Offset)
+  //graphics.clear();                     // transparenter Hintergrund
+  //graphics.textAlign(CENTER, CENTER);   // horizontal + vertikal zentriert
+  // graphics.background(255, 0, 0);
+  graphics.fill(255);
+  graphics.textAlign(CENTER, CENTER);
+  graphics.text(currentCounter.toString(), graphics.width / 2, graphics.height / 2 - (TEXT_SETTINGS.numberVerticalOffset * graphics.height));
+  // return objects with pixel values, width, height
+  let pixelArray = [];
+  for (let y = 0; y < graphics.height; y++) {
+    for (let x = 0; x < graphics.width; x++) {
+      let px = graphics.get(x, y);
+      // Set alpha based on brightness threshold
+      if (px[0] < 128) {
+        pixelArray.push(0); // transparent
+      } else {
+        pixelArray.push(255); // opaque white
+      }
     }
-
-    // GIF mit Spotlight-Opacity zeichnen, maskiert durch den Gradient
-    push();
-
-    // Blend mode für additives Overlay
-    drawingContext.save();
-
-    // Temporärer Canvas für maskiertes GIF
-    let tempCanvas = document.createElement('canvas');
-    tempCanvas.width = width;
-    tempCanvas.height = height;
-    let tempCtx = tempCanvas.getContext('2d');
-
-    // GIF auf temp canvas zeichnen
-    tempCtx.drawImage(backgroundGif.canvas || backgroundGif.elt,
-      dims.imgX, dims.imgY, dims.imgW, dims.imgH);
-
-    // Maske als composite operation anwenden
-    tempCtx.globalCompositeOperation = 'destination-in';
-    tempCtx.drawImage(spotlightMask.canvas || spotlightMask.elt, 0, 0);
-
-    // Extra Opacity für den Spotlight-Bereich
-    let extraOpacity = SPOTLIGHT_SETTINGS.maxOpacity - BG_SETTINGS.opacity;
-    drawingContext.globalAlpha = extraOpacity / 255;
-
-    // Tint anwenden
-    tint(BG_SETTINGS.tint[0], BG_SETTINGS.tint[1], BG_SETTINGS.tint[2]);
-
-    // Maskiertes Bild zeichnen
-    drawingContext.drawImage(tempCanvas, 0, 0);
-
-    drawingContext.restore();
-    pop();
   }
+  let graphicsObject = {
+    pixel: pixelArray,
+    width: graphics.width,
+    height: graphics.height
+  };
+  return graphicsObject;
 }
 
 function draw() {
   background(0, 0, 0);  // ANGEPASST: von (10,10,10) auf reines Schwarz für maximalen Kontrast
 
+  spotlight();
   // Hintergrund-GIF mit Spotlight zeichnen
   drawBackgroundGif();
+
 
   // Only create graphics buffer when counter changes
   let currentCounter = poster.getCounter();
   if (currentCounter !== lastCounter) {
-    lineSlideParams = buildLineParams();
-
-    // altes Graphics fuer Transition merken
-    if (numberGraphics) {
-      if (oldNumberGraphics) {
-        oldNumberGraphics.remove();
-      }
-      oldNumberGraphics = numberGraphics;
-    }
-
-    // Neues Graphics fuer die Zahl
-    numberGraphics = createGraphics(width, height);
-    numberGraphics.pixelDensity(1); // macht das Sampling stabiler
-    numberGraphics.textFont(backgroundFont);
-
-    // Referenzgroesse fuer Messung
-    let refSize = 100;
-    //numberGraphics.textSize(refSize);
-    let asc = numberGraphics.textAscent();
-    let desc = numberGraphics.textDescent();
-    let totalRefHeight = asc + desc;
-
-    // Zielhoehe: aus Settings
-    //let targetHeight = height * TEXT_SETTINGS.numberHeightScale;
-    // let scale = targetHeight / totalRefHeight;
-    //let numberSize = refSize * scale;
-    let numberSize = height * 0.9;
-    // endgueltige Groesse setzen
-    numberGraphics.textSize(numberSize);
-
-    // jetzt noch einmal messen (nicht zwingend noetig, aber sauber)
-    asc = numberGraphics.textAscent();
-    desc = numberGraphics.textDescent();
-
-    // Zahl zentriert in der Mitte des Offscreen-Canvas zeichnen (mit vertikalem Offset)
-    numberGraphics.clear();                     // transparenter Hintergrund
-    numberGraphics.textAlign(CENTER, CENTER);   // horizontal + vertikal zentriert
-    numberGraphics.fill(TEXT_SETTINGS.numberColor[0], TEXT_SETTINGS.numberColor[1], TEXT_SETTINGS.numberColor[2], TEXT_SETTINGS.numberOpacity);
-    numberGraphics.text(currentCounter.toString(), width / 2, height / 2 + TEXT_SETTINGS.numberVerticalOffset);
-
+    oldNumberGraphics = numberGraphics;
+    numberGraphics = allNumberGraphics[currentCounter]
     // Transition starten
     transitionStartTime = millis();
     transitionProgress = 0;
@@ -440,8 +354,8 @@ function draw() {
     transitionProgress = constrain(elapsed / transitionDuration, 0, 1);
 
     if (transitionProgress >= 1 && oldNumberGraphics) {
-      oldNumberGraphics.remove();
-      oldNumberGraphics = null;
+      // oldNumberGraphics.remove();
+      //oldNumberGraphics = null;
     }
   }
 
@@ -555,12 +469,13 @@ function draw() {
 
     fill(color[0], color[1], color[2], finalOpacity);
     let xPos = word.x + totalOffsetX;
-    xPos = constrain(xPos, 0, width);
     if (word.y + totalOffsetY < height) {
       text(word.text, xPos, word.y + totalOffsetY);
     }
     //console.log(word.text);
   });
+  //console.log(currentCounter)
+  // image(allNumberGraphics[currentCounter], 0, 0);
 }
 
 function easeInOutCubic(t) {
@@ -569,7 +484,7 @@ function easeInOutCubic(t) {
 
 function checkOverlapPrecise(word, pg, offsetX = 0, offsetY = 0, textOffsetX = 0) {
   if (!pg) return false;
-
+  //console.log(pg);
   let wordHeight = TEXT_SETTINGS.fontSize * poster.vw;
   let samples = 3;
   for (let i = 0; i < samples; i++) {
@@ -578,8 +493,12 @@ function checkOverlapPrecise(word, pg, offsetX = 0, offsetY = 0, textOffsetX = 0
     for (let j = 0; j < 2; j++) {
       let checkY = sampleY + (wordHeight * j);
       if (sampleX >= 0 && sampleX < width && checkY >= 0 && checkY < height) {
-        let px = pg.get(sampleX, checkY);
-        if (px[0] > 128) {
+        let x = floor((sampleX / width) * pg.width);
+        let y = floor((checkY / height) * pg.height);
+        let index = y * pg.width + x;
+        pg.pixel[index]
+        let px = pg.pixel[index];
+        if (px > 128) {
           return true;
         }
       }
@@ -592,9 +511,13 @@ function windowResized() {
   //resizeCanvas(windowWidth, windowHeight);
 
   // Spotlight mask buffer neu erstellen
-  spotlightMask.resizeCanvas(width, height);
-
+  //spotlightMask.resizeCanvas(width, height);
   layoutText();
+  createSpotlightMask(width, height, SPOTLIGHT_SETTINGS.radius, SPOTLIGHT_SETTINGS.softness);
+  for (let i = 0; i <= 9; i++) {
+    allNumberGraphics[i] = createNumberGraphics(i);
+  }
+
   lastCounter = -1; // Force recreation of number graphics
 }
 
@@ -611,4 +534,33 @@ function buildLineParams() {
     };
   }
   return params;
+}
+
+function spotlight() {
+  // X-Position folgt der Person (kann über den Bildschirmrand hinausgehen)
+  let normalizedX = poster.posNormal.x;
+  let targetX;
+
+  if (SPOTLIGHT_SETTINGS.allowOffscreen) {
+    // Erlaube Positionen ausserhalb des Bildschirms
+    // posNormal.x kann Werte < 0 oder > 1 haben wenn Person den Bereich verlässt
+    let margin = width * SPOTLIGHT_SETTINGS.offscreenMargin;
+    targetX = normalizedX * width;
+    // Wenn Person weit weg ist, Spotlight weiter rausschieben
+    if (normalizedX < 0) {
+      targetX = normalizedX * width - margin * abs(normalizedX);
+    } else if (normalizedX > 1) {
+      targetX = normalizedX * width + margin * (normalizedX - 1);
+    }
+  } else {
+    targetX = constrain(normalizedX, 0, 1) * width;
+  }
+
+  // Y-Position folgt der Sinuswelle basierend auf X-Position
+  let targetY = calculateSineWaveY(normalizedX);
+
+  // Smooth spotlight position
+  spotlightX += (targetX - spotlightX) * SPOTLIGHT_SETTINGS.easing;
+  spotlightY += (targetY - spotlightY) * SPOTLIGHT_SETTINGS.easing;
+
 }
