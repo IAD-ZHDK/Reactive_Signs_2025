@@ -17,29 +17,33 @@ let digitsD9_d = []; // animation frames 9-0
 
 // Animation variables
 let currentAnimationFrame = 1;
+let animationDirection = 1;
 let animationSpeed = 8;
 let frameCounter = 0;
 let currentDigitArray = [];
-let currentCounter = -1;
+let lastCounter = -1;
 let animationCompleted = false;
 
 // ASCII caching
 let cachedAscii;
 let cachedForImage = null;
 let cachedForFrame = -1;
+// wiggle animation
+let lastChangeWiggle = 0;
+let wiggleStep = 0;
 
 function preload() {
-  for (let i = 1; i <= 9; i++) {
-    digitsD0_d[i] = loadImage("imgs/d0_d" + i + ".png");
-    digitsD1_d[i] = loadImage("imgs/d1_d" + i + ".png");
-    digitsD2_d[i] = loadImage("imgs/d2_d" + i + ".png");
-    digitsD3_d[i] = loadImage("imgs/d3_d" + i + ".png");
-    digitsD4_d[i] = loadImage("imgs/d4_d" + i + ".png");
-    digitsD5_d[i] = loadImage("imgs/d5_d" + i + ".png");
-    digitsD6_d[i] = loadImage("imgs/d6_d" + i + ".png");
-    digitsD7_d[i] = loadImage("imgs/d7_d" + i + ".png");
-    digitsD8_d[i] = loadImage("imgs/d8_d" + i + ".png");
-    digitsD9_d[i] = loadImage("imgs/d9_d" + i + ".png");
+  for (let i = 0; i <= 8; i++) {
+    digitsD0_d[i] = loadImage("imgs/d0_d" + (i + 1) + ".png");
+    digitsD1_d[i] = loadImage("imgs/d1_d" + (i + 1) + ".png");
+    digitsD2_d[i] = loadImage("imgs/d2_d" + (i + 1) + ".png");
+    digitsD3_d[i] = loadImage("imgs/d3_d" + (i + 1) + ".png");
+    digitsD4_d[i] = loadImage("imgs/d4_d" + (i + 1) + ".png");
+    digitsD5_d[i] = loadImage("imgs/d5_d" + (i + 1) + ".png");
+    digitsD6_d[i] = loadImage("imgs/d6_d" + (i + 1) + ".png");
+    digitsD7_d[i] = loadImage("imgs/d7_d" + (i + 1) + ".png");
+    digitsD8_d[i] = loadImage("imgs/d8_d" + (i + 1) + ".png");
+    digitsD9_d[i] = loadImage("imgs/d9_d" + (i + 1) + ".png");
   }
   barGif = loadImage("imgs/bar-try.gif");
   // prebuffer 
@@ -64,15 +68,40 @@ function draw() {
   let counter = poster.getCounter();
 
   // Check if counter has changed
-  if (counter !== currentCounter) {
-    currentCounter = counter;
-    currentAnimationFrame = 1; // Start at frame 1
+  if (counter !== lastCounter) {
+
+
     frameCounter = 0;
     animationCompleted = false;
-    cachedAscii = null; // Reset cache
+
+
+
 
     // Correct counter mapping
     // If counter is X, show transition TO X (not FROM X)
+
+    if ((lastCounter == 9 && counter == 0) || lastCounter < counter && !(lastCounter == 0 && counter == 9)) {
+      currentAnimationFrame = 0; // Start at frame 0
+      animationDirection = 1;
+      console.log("going up")
+    } else {
+      currentAnimationFrame = 8; // Start at frame 8
+      animationDirection = -1;
+      console.log("going down")
+    }
+
+
+
+    lastCounter = counter;
+    console.log("counter" + counter)
+    if (animationDirection == -1) {
+      if (counter == 9) {
+        counter = 0
+      } else {
+        counter += 1
+      }
+
+    }
     switch (counter) {
       case 9:
         currentDigitArray = digitsD8_d; // 8→9 transition
@@ -116,25 +145,51 @@ function draw() {
       frameCounter++;
       if (frameCounter >= animationSpeed) {
         frameCounter = 0;
-        currentAnimationFrame++;
+        if (animationDirection == 1) { // going down
+          // going up
+          currentAnimationFrame++;
+          // Stay on last frame instead of disappearing
+          if (currentAnimationFrame > 8) {
+            currentAnimationFrame = 8;
+            animationCompleted = true;
+          }
+          // Regenerate ASCII
+        } else {
+          // going down
+          currentAnimationFrame--;
 
-        // Stay on last frame instead of disappearing
-        if (currentAnimationFrame > 9) {
-          currentAnimationFrame = 9;
-          animationCompleted = true;
+          if (currentAnimationFrame < 0) {
+            currentAnimationFrame = 0;
+            animationCompleted = true;
+          }
+
         }
-        // Regenerate ASCII
-        cachedAscii = null;
       }
-    }
-
+    } /*else {
+      if (millis() - lastChangeWiggle > 900) {
+        // alternate between -1 and 1 
+        if (wiggleStep != -1) {
+          wiggleStep = -1;
+        } else {
+          wiggleStep = 1;
+        }
+        //  if (currentAnimationFrame > 0 && currentAnimationFrame < currentDigitArray.length - 1) {
+        if (currentAnimationFrame > 0 && currentAnimationFrame + wiggleStep <= 9) {
+          currentAnimationFrame += wiggleStep;
+          console.log("wiggle to frame: " + currentAnimationFrame);
+        }
+        lastChangeWiggle = millis();
+      }
+    }*/
+    //console.log("current frame: " + currentAnimationFrame);
+    // console.log("array length: " + currentDigitArray[currentAnimationFrame]);
     img = currentDigitArray[currentAnimationFrame];
-    asciiEffect(img, currentAnimationFrame);
+    asciiEffect(img);
   }
   oppositeMirror();
 }
 
-function asciiEffect(frameImg, frameIndex) {
+function asciiEffect(frameImg) {
   // Use cached ascii image
   /*
 if (
@@ -145,8 +200,8 @@ if (
   image(cachedAscii, 0, 0, width, height);
   return;
 }
-
-
+ 
+ 
 // Create buffer
 let pg = createGraphics(width, height);
 pg.noSmooth();
