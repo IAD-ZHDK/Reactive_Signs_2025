@@ -165,8 +165,8 @@ function draw() {
 
         }
       }
-    } /*else {
-      if (millis() - lastChangeWiggle > 900) {
+    } else {
+      if (millis() - lastChangeWiggle > random(700, 900)) {
         // alternate between -1 and 1 
         if (wiggleStep != -1) {
           wiggleStep = -1;
@@ -174,13 +174,13 @@ function draw() {
           wiggleStep = 1;
         }
         //  if (currentAnimationFrame > 0 && currentAnimationFrame < currentDigitArray.length - 1) {
-        if (currentAnimationFrame > 0 && currentAnimationFrame + wiggleStep <= 9) {
+        if (currentAnimationFrame + wiggleStep >= 0 && currentAnimationFrame + wiggleStep <= 8) {
           currentAnimationFrame += wiggleStep;
           console.log("wiggle to frame: " + currentAnimationFrame);
         }
         lastChangeWiggle = millis();
       }
-    }*/
+    }
     //console.log("current frame: " + currentAnimationFrame);
     // console.log("array length: " + currentDigitArray[currentAnimationFrame]);
     img = currentDigitArray[currentAnimationFrame];
